@@ -75,6 +75,7 @@ export default function Navbar() {
             <>
               <NavLink to="/subjects" className={activeStyle}>Subjects</NavLink>
               <NavLink to="/dashboard" className={activeStyle}>Dashboard</NavLink>
+              <NavLink to="/admindashboard" className={activeStyle}>AdminDashboard</NavLink>
               <div className="flex items-center gap-4 ml-4 pl-4 border-l border-white/20">
                 <span className="text-blue-100 italic normal-case font-medium">Hi, {user.name}</span>
                 <button onClick={handleLogout} className="bg-red-500 px-4 py-2 rounded-xl text-xs hover:bg-red-600 transition-all">Logout</button>
@@ -99,7 +100,7 @@ export default function Navbar() {
             <>
               <NavLink to="/subjects" onClick={() => setMenuOpen(false)} className={activeStyle}>Subjects</NavLink>
               <NavLink to="/dashboard" onClick={() => setMenuOpen(false)} className={activeStyle}>Dashboard</NavLink>
-              <NavLink to="/dashboard" onClick={() => setMenuOpen(false)} className={activeStyle}>AdminDashboard</NavLink>
+              <NavLink to="/admindashboard" onClick={() => setMenuOpen(false)} className={activeStyle}>AdminDashboard</NavLink>
               <div className="pt-8 flex flex-col items-center gap-4">
                 <span className="text-blue-200 text-sm">Signed in as {user.name}</span>
                 <button 

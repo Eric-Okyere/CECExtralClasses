@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../../services/BaseUrl";
 
 const ManageLessons = () => {
   const [lessons, setLessons] = useState([]);
@@ -9,7 +10,7 @@ const ManageLessons = () => {
   useEffect(() => {
     const fetchLessons = async () => {
       try {
-        const response = await fetch("http://localhost:5001/api/lessons");
+        const response = await fetch(`${API_BASE_URL}lessons`);
         const json = await response.json();
         if (json.success) setLessons(json.data);
       } catch (err) {
@@ -37,6 +38,9 @@ const ManageLessons = () => {
           <h1 className="text-2xl font-bold text-gray-800">Lesson Management</h1>
           <p className="text-sm text-gray-500">Manage curriculum content and quizzes</p>
         </div>
+        <button onClick={()=> navigate("/all-subjects")} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-200">
+          All Subjects
+        </button>
         <button onClick={()=> navigate("/create-quiz")} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition duration-200">
           + Add New Lesson
         </button>

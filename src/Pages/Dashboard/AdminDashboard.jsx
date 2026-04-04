@@ -6,6 +6,7 @@ import {
   Filter, Edit3, X, Save, User as UserIcon, 
   CheckCircle2, BookOpen // 2. Added BookOpen Icon
 } from "lucide-react";
+import { API_BASE_URL } from "../../services/BaseUrl";
 
 export default function AdminDashboard() {
   const navigate = useNavigate(); // 3. Initialized Navigate
@@ -30,7 +31,7 @@ export default function AdminDashboard() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch("http://localhost:5001/api/auth/users");
+      const response = await fetch(`${API_BASE_URL}auth/users`); // 4. Updated URL to use API_BASE_URL
       const data = await response.json();
       setUsers(data);
     } catch (error) { console.error("Fetch error:", error); } finally { setLoading(false); }

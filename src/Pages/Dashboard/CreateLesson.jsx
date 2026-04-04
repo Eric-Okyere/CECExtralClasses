@@ -3,6 +3,7 @@ import {
   Video, Plus, Trash2, BookOpen, Layers, 
   Save, X, Type, Loader2, Play 
 } from "lucide-react";
+import { API_BASE_URL } from "../../services/BaseUrl";
 
 export default function CreateLesson() {
   const [subjects, setSubjects] = useState([]);
@@ -23,7 +24,7 @@ export default function CreateLesson() {
   const levels = ["JHS 1", "JHS 2", "JHS 3"];
 
   useEffect(() => {
-    fetch("http://localhost:5001/api/subjects")
+    fetch(`${API_BASE_URL}subjects`)
       .then((res) => res.json())
       .then((data) => setSubjects(data.data || data)) // Handle nested data if necessary
       .catch(console.error);
@@ -116,7 +117,7 @@ export default function CreateLesson() {
     formData.append("quiz", JSON.stringify(form.quiz));
 
     try {
-      const res = await fetch("http://localhost:5001/api/lessons", {
+      const res = await fetch(`${API_BASE_URL}lessons`, {
         method: "POST",
         body: formData,
       });

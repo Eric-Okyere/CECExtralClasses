@@ -57,7 +57,7 @@ export default function CreateSubjectForm() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:5001/api/subjects", {
+      const res = await fetch(`${API_BASE_URL}subjects`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(formData),
