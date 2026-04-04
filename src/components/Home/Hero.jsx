@@ -1,6 +1,8 @@
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 
 export default function Hero() {
+  const navigate = useNavigate();
   return (
     <section className="bg-blue-600 text-white py-20 px-6">
       <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-10 items-center">
@@ -18,7 +20,7 @@ export default function Hero() {
           </p>
 
           <div className="mt-8 flex gap-4">
-            <button className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold">
+            <button onClick={()=> navigate("/login")} className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold">
               Get Started
             </button>
 
