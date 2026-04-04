@@ -1,5 +1,4 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import ProtectedRoute from "./Components/ProtectedRoute";
 import Login from "./Pages/Login";
 import Register from "./Pages/Register"
 import Dashboard from "./Pages/Dashboard";
@@ -17,6 +16,7 @@ import CreateSubjectForm from "./Pages/Dashboard/CreateSubjectForm";
 import AllSubjects from "./Pages/Dashboard/AllSubjects";
 import EditSubjectForm from "./Pages/Dashboard/EditSubjectForm";
 import SubjectDetails from "./Pages/Dashboard/SubjectDetails";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
