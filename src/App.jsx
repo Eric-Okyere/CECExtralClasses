@@ -1,11 +1,11 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import ProtectedRoute from "./components/ProtectedRoute";
+import ProtectedRoute from "./Components/ProtectedRoute";
 import Login from "./Pages/Login";
-import Register from "./Pages/Register";
-import Dashboard from "./pages/Dashboard";
-import Subjects from "./pages/Subjects";
-import Lesson from "./Pages/Lesson";
-import Quiz from "./pages/Quiz";
+import Register from "./Pages/Register"
+import Dashboard from "./Pages/Dashboard";
+import Subjects from "./Pages/Subjects"
+import Lesson from "./Pages/Lesson"
+import Quiz from "./Pages/Quiz"
 import Topics from "./Pages/Topics";
 import Home from "./Pages/Home";
 import CreateLesson from "./Pages/Dashboard/CreateLesson";
