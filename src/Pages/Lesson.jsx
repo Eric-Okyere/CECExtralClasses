@@ -4,7 +4,7 @@ import { useParams, useLocation, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import Confetti from "react-confetti";
 
-import mathVideo from "../assets/lesson.mp4";
+import mathVideo from "../assets/Lesson.mp4";
 import scienceVideo from "../assets/ScienceLesson.mp4";
 import clapSound from "../assets/Clapping_Sound_Effect(256k).mp3";
 import oohSound from "../assets/Ooh_-_Sound.mp3";
