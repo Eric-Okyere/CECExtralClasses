@@ -3,21 +3,21 @@ import { API_BASE_URL } from "./BaseUrl";
 
 
 
-export const registerUser = async (name, surname, email, password) => {
+export const registerUser = async (userData) => {
   try {
     const response = await fetch(`${API_BASE_URL}auth/register`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ name, surname, email, password }),
+      body: JSON.stringify(userData), // Send the whole object
     });
 
     const data = await response.json();
 
     if (!response.ok) {
-      // Throw the error message from the backend (e.g., "User already exists")
-      throw data.msg || "Registration failed";
+      // Use data.message or data.msg depending on your backend response
+      throw data.message || data.msg || "Registration failed";
     }
 
     return data;

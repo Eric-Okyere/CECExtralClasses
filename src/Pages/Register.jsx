@@ -21,44 +21,27 @@ export default function Register() {
   };
 
   const handleRegister = async () => {
-    const { name, surname, email, password, confirmPassword } = formData;
+  const { name, surname, email, password, confirmPassword } = formData;
 
-    // 1. Validation: Check for empty fields
-    if (!name || !surname || !email || !password || !confirmPassword) {
-      setMessage("All fields are required to create your account.");
-      return;
-    }
+  // ... (keep your existing validations)
 
-    // 2. Validation: Minimum password length (Must be more than 5)
-    if (password.length < 5) {
-      setMessage("Security requirement: Password must be at least 6 characters.");
-      return;
-    }
+  setLoading(true);
+  setMessage("");
 
-    // 3. Validation: Ensure passwords match
-    if (password !== confirmPassword) {
-      setMessage("Passwords do not match. Please try again.");
-      return;
-    }
-
-    setLoading(true);
-    setMessage("");
-
-    try {
-      // 🚀 SENDING TO BACKEND (Excludes confirmPassword)
-      await registerUser(name, surname, email, password);
+  try {
+    // 🚀 Pass the fields as a single object (excluding confirmPassword)
+    await registerUser({ name, surname, email, password });
      
-      // Redirect to login with a success message state
-      navigate("/login", { 
-        state: { msg: "Registration successful! Log in to continue." } 
-      });
-    } catch (err) {
-      // Handles errors from the backend (e.g., "Email already exists")
-      setMessage(err || "An error occurred. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    navigate("/login", { 
+      state: { msg: "Registration successful! Log in to continue." } 
+    });
+  } catch (err) {
+    // This will now catch the "throw" from your api.js
+    setMessage(typeof err === 'string' ? err : "Connection to server failed");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-50 px-4">
