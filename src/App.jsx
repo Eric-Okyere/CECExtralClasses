@@ -3,7 +3,6 @@ import Login from "./Pages/Login"
 import Register from "./Pages/Register"
 import Dashboard from "./Pages/Dashboard";
 import Subjects from "./Pages/Subjects"
-import Lesson from "./Pages/Lesson"
 import Quiz from "./Pages/Quiz"
 import Topics from "./Pages/Topics";
 import Home from "./Pages/Home";
@@ -82,10 +81,10 @@ function App() {
           path="/topics/:subject/:level" 
           element={<ProtectedRoute><Topics /></ProtectedRoute>} 
         />
-        <Route 
+        {/* <Route 
           path="/lesson/:subject/:level/:sub" 
           element={<ProtectedRoute><Lesson /></ProtectedRoute>} 
-        />
+        /> */}
 
         <Route path="/lesson/:id" element={
           <ProtectedRoute>
