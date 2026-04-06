@@ -1,126 +1,167 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { NavLink, Link, useNavigate } from "react-router-dom";
-import { HiMenu, HiX } from "react-icons/hi"; // Install react-icons if you haven't
+import { HiMenu, HiX, HiChevronDown, HiUser, HiLogout, HiViewGrid, HiShieldCheck } from "react-icons/hi"; 
 import Logo from "../assets/Logo.jpeg";
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
+  const dropdownRef = useRef(null);
 
   useEffect(() => {
     const checkUser = () => {
       const storedData = localStorage.getItem("user");
       if (storedData) {
         const parsed = JSON.parse(storedData);
-        const userData = parsed.user ? parsed.user : parsed;
-        setUser(userData);
+        setUser(parsed.user || parsed);
       }
     };
+
     checkUser();
+    
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    };
+
     window.addEventListener("storage", checkUser);
-    return () => window.removeEventListener("storage", checkUser);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      window.removeEventListener("storage", checkUser);
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("user");
+    localStorage.removeItem("token");
     setUser(null);
     setMenuOpen(false);
+    setDropdownOpen(false);
     navigate("/login");
   };
 
   const activeStyle = ({ isActive }) => 
-    isActive 
-      ? "text-yellow-300 font-bold md:border-b-2 md:border-yellow-300 pb-1" 
-      : "hover:text-gray-200 transition duration-300";
+    `transition duration-300 ${isActive ? "text-yellow-400 font-bold" : "hover:text-yellow-200"}`;
 
   return (
-    <nav className="bg-blue-700 text-white shadow-lg sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
+    <nav className="bg-blue-700 text-white shadow-xl sticky top-0 z-50 font-sans">
+      <div className="max-w-7xl mx-auto px-6 py-3 flex justify-between items-center">
         
-        {/* --- LOGO SECTION --- */}
-        <Link to="/" className="group flex items-center gap-3 z-[60]">
-          <img 
-            src={Logo} 
-            alt="Logo" 
-            className="w-10 h-10 rounded-full border-2 border-white/30 object-cover animate-[spin_10s_linear_infinite] group-hover:[transform:rotateY(360deg)] transition-transform duration-1000" 
-          />
-         <div className="flex flex-col w-fit">
-          <h1 className="font-black text-xl tracking-tighter leading-none uppercase flex justify-between">
-            <span>CEC Extra</span>
-            <span className="text-yellow-400 ml-1">Classes</span>
-          </h1>
-          
-          {/* This span uses flex justify-between to force the text to fill the 100% width of the H1 above it */}
-          <span className="text-[8px] uppercase font-bold text-blue-200 opacity-80 flex justify-between w-full tracking-[0.1em]">
-            {"Where Learning Knows No Limit".split("").map((char, index) => (
-              <span key={index}>{char === " " ? "\u00A0" : char}</span>
-            ))}
-          </span>
-        </div>
+        {/* LOGO */}
+        <Link to="/" className="flex items-center gap-3">
+          <img src={Logo} alt="CEC Logo" className="w-12 h-12 rounded-xl object-cover border border-white/20" />
+          <div className="hidden sm:block">
+            <h1 className="font-black text-lg tracking-tighter leading-none uppercase">
+              CEC <span className="text-yellow-400">Extra Classes</span>
+            </h1>
+            <p className="text-[9px] uppercase tracking-[0.2em] text-blue-200 font-bold opacity-80">Learning Without Limits</p>
+          </div>
         </Link>
 
-        {/* --- MOBILE HAMBURGER BUTTON --- */}
-        <button 
-          className="md:hidden text-3xl focus:outline-none z-[60]"
-          onClick={() => setMenuOpen(!menuOpen)}
-        >
-          {menuOpen ? <HiX /> : <HiMenu />}
-        </button>
-
-        {/* --- DESKTOP MENU --- */}
-        <div className="hidden md:flex space-x-8 items-center text-sm uppercase tracking-wider font-semibold">
+        {/* DESKTOP NAV */}
+        <div className="hidden md:flex items-center space-x-8 text-sm font-bold uppercase tracking-wide">
           <NavLink to="/" className={activeStyle}>Home</NavLink>
+          
           {user ? (
             <>
-              <NavLink to="/subjects" className={activeStyle}>Subjects</NavLink>
-              <NavLink to="/dashboard" className={activeStyle}>Dashboard</NavLink>
-              <NavLink to="/admindashboard" className={activeStyle}>AdminDashboard</NavLink>
-              <div className="flex items-center gap-4 ml-4 pl-4 border-l border-white/20">
-                <span className="text-blue-100 italic normal-case font-medium">Hi, {user.name}</span>
-                <button onClick={handleLogout} className="bg-red-500 px-4 py-2 rounded-xl text-xs hover:bg-red-600 transition-all">Logout</button>
+              {/* <NavLink to="/subjects" className={activeStyle}>Subjects</NavLink> */}
+              
+              {/* USER PROFILE DROPDOWN */}
+              <div className="relative" ref={dropdownRef}>
+                <button 
+                  onClick={() => setDropdownOpen(!dropdownOpen)}
+                  className="flex items-center gap-2 bg-blue-800 pl-2 pr-4 py-1.5 rounded-2xl border border-white/10 hover:bg-blue-900 transition-all"
+                >
+                  {/* GOOGLE PICTURE OR INITIALS */}
+                  {user.picture ? (
+                    <img 
+                      src={user.picture} 
+                      alt={user.name} 
+                      className="w-8 h-8 rounded-full border-2 border-yellow-400 object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center text-blue-900 font-bold">
+                      {user.name?.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+
+                  <span className="normal-case text-sm font-medium">
+                    Hi, {user.name?.split(' ')[0]}
+                  </span>
+                  <HiChevronDown className={`transition-transform ${dropdownOpen ? "rotate-180" : ""}`} />
+                </button>
+
+                {/* DROPDOWN MENU */}
+                {dropdownOpen && (
+                  <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-2xl py-2 text-slate-800 animate-in fade-in zoom-in duration-200">
+                    <div className="px-4 py-3 border-b border-slate-100 mb-2">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-left">Signed in as</p>
+                      <p className="text-xs font-bold truncate text-blue-700">{user.email}</p>
+                    </div>
+
+                    {/* ADMIN ONLY LINK */}
+                    {user.admin === true && (
+                      <Link to="/admindashboard" onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2 hover:bg-slate-50 transition-colors text-red-600 font-black">
+                        <HiShieldCheck size={18} /> Admin Panel
+                      </Link>
+                    )}
+
+                    <Link to="/dashboard" onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2 hover:bg-slate-50 transition-colors">
+                      <HiViewGrid size={18} className="text-blue-600" /> Dashboard
+                    </Link>
+                    
+                    <Link to="/profile" onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2 hover:bg-slate-50 transition-colors">
+                      <HiUser size={18} className="text-blue-600" /> My Profile
+                    </Link>
+
+                    <button 
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-3 px-4 py-2 mt-2 border-t border-slate-100 text-red-500 hover:bg-red-50 transition-colors font-bold"
+                    >
+                      <HiLogout size={18} /> Logout
+                    </button>
+                  </div>
+                )}
               </div>
             </>
           ) : (
-            <>
-              <NavLink to="/login" className={activeStyle}>Login</NavLink>
-              <NavLink to="/register" className="bg-yellow-400 text-blue-900 px-6 py-2 rounded-full hover:bg-white transition-all font-bold">Register</NavLink>
-            </>
+            <div className="flex items-center gap-4">
+              <NavLink to="/login" className="hover:text-yellow-400 transition-colors">Login</NavLink>
+              <Link to="/login" className="bg-yellow-400 text-blue-900 px-6 py-2 rounded-xl hover:shadow-lg hover:scale-105 transition-all">
+                Register Now
+              </Link>
+            </div>
           )}
         </div>
 
-        {/* --- MOBILE OVERLAY MENU --- */}
-        <div className={`
-          fixed inset-0 bg-blue-800 flex flex-col items-center justify-center space-y-8 text-2xl font-bold transition-all duration-500 md:hidden
-          ${menuOpen ? "translate-x-0 opacity-100" : "translate-x-full opacity-0"}
-        `}>
-          <NavLink to="/" onClick={() => setMenuOpen(false)} className={activeStyle}>Home</NavLink>
-          
+        {/* MOBILE TOGGLE */}
+        <button className="md:hidden text-3xl" onClick={() => setMenuOpen(!menuOpen)}>
+          {menuOpen ? <HiX /> : <HiMenu />}
+        </button>
+      </div>
+
+      {/* MOBILE MENU */}
+      <div className={`md:hidden overflow-hidden transition-all duration-300 bg-blue-800 ${menuOpen ? "max-h-[500px] border-t border-white/10" : "max-h-0"}`}>
+        <div className="flex flex-col p-6 space-y-4 font-bold uppercase tracking-widest text-center">
+          <NavLink to="/" onClick={() => setMenuOpen(false)}>Home</NavLink>
           {user ? (
             <>
-              <NavLink to="/subjects" onClick={() => setMenuOpen(false)} className={activeStyle}>Subjects</NavLink>
-              <NavLink to="/dashboard" onClick={() => setMenuOpen(false)} className={activeStyle}>Dashboard</NavLink>
-              <NavLink to="/admindashboard" onClick={() => setMenuOpen(false)} className={activeStyle}>AdminDashboard</NavLink>
-              <div className="pt-8 flex flex-col items-center gap-4">
-                <span className="text-blue-200 text-sm">Signed in as {user.name}</span>
-                <button 
-                  onClick={handleLogout}
-                  className="bg-red-500 px-8 py-3 rounded-full text-lg shadow-xl"
-                >
-                  Logout
-                </button>
-              </div>
+              {/* <NavLink to="/subjects" onClick={() => setMenuOpen(false)}>Subjects</NavLink> */}
+              <NavLink to="/dashboard" onClick={() => setMenuOpen(false)}>Dashboard</NavLink>
+              {user.admin === true && (
+                <NavLink to="/admindashboard" onClick={() => setMenuOpen(false)} className="text-yellow-400">Admin Panel</NavLink>
+              )}
+              <button onClick={handleLogout} className="bg-red-500 py-3 rounded-xl mt-4">Logout</button>
             </>
           ) : (
             <>
-              <NavLink to="/login" onClick={() => setMenuOpen(false)} className={activeStyle}>Login</NavLink>
-              <NavLink 
-                to="/register" 
-                onClick={() => setMenuOpen(false)}
-                className="bg-yellow-400 text-blue-900 px-10 py-3 rounded-full"
-              >
-                Register Now
-              </NavLink>
+              <NavLink to="/login" onClick={() => setMenuOpen(false)}>Login</NavLink>
+              <NavLink to="/login" onClick={() => setMenuOpen(false)} className="text-yellow-400">Register</NavLink>
             </>
           )}
         </div>

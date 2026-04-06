@@ -1,109 +1,80 @@
-// src/pages/Topics.jsx
 import Navbar from "../components/Navbar";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
+import axios from "axios";
 
 export default function Topics() {
   const { subject, level } = useParams();
   const navigate = useNavigate();
 
+  const [strands, setStrands] = useState([]); // This will store the strands array
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   const levels = ["JHS 1", "JHS 2", "JHS 3"];
 
-  // =========================
-  // MATHEMATICS
-  // =========================
-  const mathematicsContent = {
-    "Strand 1: Number": [
-      "Sub-strand 1: Number and Numeration Systems",
-      "Sub-strand 2: Number Operations",
-      "Sub-strand 3: Fractions, Decimals and Percentages",
-      "Sub-strand 4: Number: Ratios and Proportion",
-    ],
-    "Strand 2: Algebra": [
-      "Sub-strand 1: Patterns and Relations",
-      "Sub-strand 2: Algebraic Expressions",
-      "Sub-strand 3: Variables and Equations",
-    ],
-    "Strand 3: Geometry and Measurement": [
-      "Sub-strand 1: Shape and Space",
-      "Sub-strand 2: Measurement",
-      "Sub-strand 3: Position and Transformation",
-    ],
-    "Strand 4: Handling Data": [
-      "Sub-strand 1: Data",
-      "Sub-strand 2: Chance or Probability",
-    ],
-  };
+  useEffect(() => {
+    const fetchTopics = async () => {
+      if (!level) {
+        setLoading(false);
+        return;
+      }
 
-  // =========================
-  // INTEGRATED SCIENCE (JHS 1–3)
-  // =========================
-  const scienceContent = {
-    "Strand 1: Diversity of Matter": [
-      "Sub-strand 1: Materials",
-      "Sub-strand 2: Living Cells",
-    ],
-    "Strand 2: Cycles": [
-      "Sub-strand 1: Earth Science",
-      "Sub-strand 2: Life Cycle of Organisms",
-      "Sub-strand 3: Crop Production",
-      "Sub-strand 4: Animal Production",
-    ],
-    "Strand 3: Systems": [
-      "Sub-strand 1: The Human Body System",
-      "Sub-strand 2: The Solar System",
-      "Sub-strand 3: Ecosystem",
-      "Sub-strand 4: Farming Systems",
-    ],
-    "Strand 4: Forces and Energy": [
-      "Sub-strand 1: Energy",
-      "Sub-strand 2: Electricity and Electronics",
-      "Sub-strand 3: Conversion and Conservation of Energy",
-      "Sub-strand 4: Force and Motion",
-      "Sub-strand 5: Agricultural Tools",
-    ],
-    "Strand 5: Humans and the Environment": [
-      "Sub-strand 1: Waste Management",
-      "Sub-strand 2: Human Health",
-      "Sub-strand 3: Science and Industry",
-      "Sub-strand 4: Climate Change and Green Economy",
-      "Sub-strand 5: Understanding the Environment",
-    ],
-  };
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const response = await axios.get("http://localhost:5001/api/subjects/");
+        const allSubjects = response.data.data || [];
 
-  // =========================
-  // SELECT CONTENT
-  // =========================
-  let topics = null;
+        // Find the specific object matching BOTH the name and the level
+        const currentSubjectData = allSubjects.find(
+          (s) => s.name === subject && s.level === level
+        );
 
-  if (subject === "Mathematics") {
-    topics = mathematicsContent;
-  } else if (subject === "Integrated Science") {
-    topics = scienceContent;
-  }
+        if (currentSubjectData && currentSubjectData.strands) {
+          setStrands(currentSubjectData.strands);
+        } else {
+          setStrands([]); // No strands found for this selection
+        }
+      } catch (err) {
+        console.error("Error fetching topics:", err);
+        setError("Failed to load curriculum.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTopics();
+  }, [subject, level]);
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="bg-gray-50 min-h-screen font-sans">
       <Navbar />
 
       <div className="max-w-5xl mx-auto p-6">
-        <h1 className="text-3xl font-bold mb-6 text-center">
-          {subject} {level && `- ${level}`}
-        </h1>
+        {/* HEADER */}
+        <div className="mb-10 text-center">
+          <h1 className="text-4xl font-black text-slate-800 uppercase tracking-tight">
+            {subject}
+          </h1>
+          {level && (
+            <span className="inline-block mt-3 px-6 py-1.5 bg-blue-600 text-white text-xs font-black rounded-full uppercase tracking-widest shadow-lg shadow-blue-200">
+              {level}
+            </span>
+          )}
+        </div>
 
-        {/* ========================= */}
-        {/* LEVEL SELECT */}
-        {/* ========================= */}
+        {/* LEVEL SELECTOR */}
         {!level && (
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             {levels.map((lvl) => (
               <motion.div
                 key={lvl}
                 whileHover={{ scale: 1.05 }}
-                onClick={() =>
-                  navigate(`/topics/${subject}/${lvl}`)
-                }
-                className="cursor-pointer bg-white p-6 rounded-xl shadow text-center"
+                onClick={() => navigate(`/topics/${subject}/${lvl}`)}
+                className="cursor-pointer bg-white p-10 rounded-[2rem] shadow-sm border border-slate-100 text-center font-black text-slate-700"
               >
                 {lvl}
               </motion.div>
@@ -111,59 +82,72 @@ export default function Topics() {
           </div>
         )}
 
-        {/* ========================= */}
-        {/* STRANDS + SUBSTRANDS */}
-        {/* ========================= */}
-        {level && topics && (
-          <div className="space-y-6">
-            {Object.entries(topics).map(([strand, subs]) => (
-              <div
-                key={strand}
-                className="bg-white p-5 rounded shadow"
-              >
-                <h2 className="font-semibold text-blue-700 mb-3">
-                  {strand}
-                </h2>
-
-                <ul className="space-y-2">
-                  {subs.map((sub) => {
-                    const progress = localStorage.getItem(
-                      `${subject}-${level}-${sub}`
-                    );
-
-                    return (
-                      <li
-                        key={sub}
-                        onClick={() =>
-                          navigate(
-                            `/lesson/${subject}/${level}/${encodeURIComponent(
-                              sub
-                            )}?strand=${encodeURIComponent(strand)}`
-                          )
-                        }
-                        className={`px-3 py-2 rounded cursor-pointer ${
-                          progress
-                            ? "bg-green-100 text-green-700"
-                            : "bg-gray-100 hover:bg-blue-50"
-                        }`}
-                      >
-                        {sub} {progress && "✅"}
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            ))}
+        {/* LOADING */}
+        {level && loading && (
+          <div className="flex justify-center py-20">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-blue-600"></div>
           </div>
         )}
 
-        {/* ========================= */}
-        {/* FALLBACK */}
-        {/* ========================= */}
-        {level && !topics && (
-          <p className="text-center text-gray-500">
-            Topics for {subject} coming soon...
-          </p>
+        {/* STRANDS & SUB-STRANDS */}
+        {level && !loading && strands.length > 0 ? (
+          <div className="space-y-8">
+            {strands.map((strand, index) => (
+              <motion.div
+                key={strand._id || index}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100"
+              >
+                <h2 className="text-xl font-black text-blue-700 mb-6 uppercase tracking-wide flex items-center">
+                  <span className="w-2 h-8 bg-yellow-400 mr-4 rounded-full"></span>
+                  {strand.title}
+                </h2>
+
+                <div className="grid grid-cols-1 gap-4">
+                  {strand.subStrands.map((sub, subIndex) => {
+                    const progress = localStorage.getItem(`${subject}-${level}-${sub}`);
+
+                    return (
+                      <button
+                        key={subIndex}
+                        onClick={() =>
+                          // Navigate using the unique identifiers for this lesson
+                          navigate(`/lesson/${subject}/${level}/${encodeURIComponent(sub)}`)
+                        }
+                        className={`group flex items-center justify-between px-6 py-5 rounded-2xl border-2 transition-all text-left ${
+                          progress
+                            ? "bg-green-50 border-green-200 text-green-800"
+                            : "bg-slate-50 border-transparent hover:border-blue-400 hover:bg-white hover:shadow-md"
+                        }`}
+                      >
+                        <span className="font-bold text-sm md:text-base leading-snug">
+                          {sub}
+                        </span>
+                        
+                        <div className="ml-4">
+                          {progress ? (
+                            <span className="bg-green-500 text-white p-1 rounded-full text-xs">✔</span>
+                          ) : (
+                            <span className="text-blue-500 font-black text-xs opacity-0 group-hover:opacity-100">GO →</span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        ) : (
+          level && !loading && (
+            <div className="text-center py-20">
+              <p className="text-slate-400 font-black uppercase tracking-widest">
+                Curriculum not yet available for this level.
+              </p>
+            </div>
+          )
         )}
       </div>
     </div>

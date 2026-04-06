@@ -20,29 +20,66 @@ export default function Register() {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleRegister = async () => {
-  const { name, surname, email, password, confirmPassword } = formData;
+//   const handleRegister = async () => {
+//   const { name, surname, email, password, confirmPassword } = formData;
 
-  // ... (keep your existing validations)
+//   // ... (keep your existing validations)
 
-  setLoading(true);
-  setMessage("");
+//   setLoading(true);
+//   setMessage("");
 
-  try {
-    // 🚀 Pass the fields as a single object (excluding confirmPassword)
-    await registerUser({ name, surname, email, password });
+//   try {
+//     // 🚀 Pass the fields as a single object (excluding confirmPassword)
+//     await registerUser({ name, surname, email, password });
      
-    navigate("/login", { 
-      state: { msg: "Registration successful! Log in to continue." } 
-    });
-  } catch (err) {
-    // This will now catch the "throw" from your api.js
-    setMessage(typeof err === 'string' ? err : "Connection to server failed");
-  } finally {
-    setLoading(false);
-  }
-};
+//     navigate("/login", { 
+//       state: { msg: "Registration successful! Log in to continue." } 
+//     });
+//   } catch (err) {
+//     // This will now catch the "throw" from your api.js
+//     setMessage(typeof err === 'string' ? err : "Connection to server failed");
+//   } finally {
+//     setLoading(false);
+//   }
+// };
 
+
+
+const handleRegister = async () => {
+    const { name, surname, email, password, confirmPassword } = formData;
+
+    // Validation
+    if (!name || !surname || !email || !password) {
+      setMessage("Please fill in all fields.");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setMessage("Passwords do not match.");
+      return;
+    }
+    if (password.length < 5) {
+      setMessage("Password must be at least 5 characters.");
+      return;
+    }
+
+    setLoading(true);
+    setMessage("");
+
+    try {
+      // 🚀 Send data to backend
+      await registerUser({ name, surname, email, password });
+     
+      // Redirect to Verify Email page (pass email so they don't have to re-type it)
+      navigate("/verify-email", { state: { email } });
+      
+    } catch (err) {
+      setMessage(err || "Connection to server failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  
   return (
     <div className="flex justify-center items-center min-h-screen bg-gray-50 px-4">
       <div className="bg-white p-8 shadow-2xl rounded-[2.5rem] w-full max-w-md border border-gray-100 animate-in fade-in slide-in-from-bottom-6 duration-700">

@@ -17,6 +17,9 @@ import AllSubjects from "./Pages/Dashboard/AllSubjects";
 import EditSubjectForm from "./Pages/Dashboard/EditSubjectForm";
 import SubjectDetails from "./Pages/Dashboard/SubjectDetails";
 import ProtectedRoute from "./components/ProtectedRoute";
+import VerifyEmail from "./Pages/VerifyEmail";
+import Profile from "./Pages/Profile";
+import LessonView from "./Pages/LessonView";
 
 function App() {
   return (
@@ -26,6 +29,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
 
         {/* PROTECTED ROUTES */}
         <Route 
@@ -73,6 +77,7 @@ function App() {
           path="/edit-subject/:id" 
           element={<ProtectedRoute><EditSubjectForm /></ProtectedRoute>} 
         />
+        <Route path="/lesson/:subject/:level/:subStrand" element={<LessonView />} />
         <Route 
           path="/topics/:subject/:level" 
           element={<ProtectedRoute><Topics /></ProtectedRoute>} 
@@ -85,6 +90,11 @@ function App() {
         <Route path="/lesson/:id" element={
           <ProtectedRoute>
             <LessonDetails />
+          </ProtectedRoute>
+        } />
+        <Route path="/profile/:id" element={
+          <ProtectedRoute>
+            <Profile />
           </ProtectedRoute>
         } />
       </Routes>
