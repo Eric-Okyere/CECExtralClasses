@@ -53,7 +53,7 @@ export default function AdminDashboard() {
 
  const handleUpdate = async () => {
     try {
-      const res = await fetch(`http://localhost:5001/api/auth/update-profile/${editingUser._id}`, {
+      const res = await fetch(`${API_BASE_URL}auth/update-profile/${editingUser._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

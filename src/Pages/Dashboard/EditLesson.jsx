@@ -4,6 +4,8 @@ import {
   Plus, Trash2, BookOpen, Layers, Save, 
   ArrowLeft, Loader2, Film, Type, CheckCircle2, Info, X, Play 
 } from "lucide-react";
+import { API_BASE_URL } from "../../services/BaseUrl";
+
 
 export default function EditLesson() {
   const { id } = useParams();
@@ -37,13 +39,13 @@ export default function EditLesson() {
     const init = async () => {
       try {
         // Fetch subjects
-        const subRes = await fetch("http://localhost:5001/api/subjects");
+        const subRes = await fetch(`${API_BASE_URL}subjects`);
         const subJson = await subRes.json();
         const subjectsData = subJson.data || [];
         setSubjects(subjectsData);
 
         // Fetch current lesson
-        const lessonRes = await fetch(`http://localhost:5001/api/lessons/${id}`);
+        const lessonRes = await fetch(`${API_BASE_URL}lessons/${id}`);
         const result = await lessonRes.json();
 
         if (result.success && result.data) {
@@ -110,7 +112,7 @@ export default function EditLesson() {
     
     setDeletingVideoId(videoId);
     try {
-      const res = await fetch(`http://localhost:5001/api/lessons/${id}/videos/${videoId}`, {
+      const res = await fetch(`${API_BASE_URL}lessons/${id}/videos/${videoId}`, {
         method: "DELETE"
       });
       const result = await res.json();
@@ -160,7 +162,7 @@ export default function EditLesson() {
     formData.append("titles", JSON.stringify(form.newVideos.map(v => v.title)));
 
     try {
-      const res = await fetch(`http://localhost:5001/api/lessons/${id}`, { method: "PUT", body: formData });
+      const res = await fetch(`${API_BASE_URL}lessons/${id}`, { method: "PUT", body: formData });
       const result = await res.json();
       if (result.success) {
         alert("Curriculum updated successfully.");

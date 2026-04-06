@@ -5,6 +5,7 @@ import {
   CheckCircle2, Loader2, Info, Edit3, PlayCircle, List,
   Layers, Award, HelpCircle
 } from "lucide-react";
+import { API_BASE_URL } from "../../services/BaseUrl";
 
 export default function LessonDetails() {
   const { id } = useParams();
@@ -16,7 +17,7 @@ export default function LessonDetails() {
   useEffect(() => {
     const fetchLesson = async () => {
       try {
-        const res = await fetch(`http://localhost:5001/api/lessons/${id}`);
+        const res = await fetch(`${API_BASE_URL}lessons/${id}`);
         const result = await res.json();
         if (result.success) setLesson(result.data);
       } catch (err) {

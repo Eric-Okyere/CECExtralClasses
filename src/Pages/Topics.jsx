@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { API_BASE_URL } from "../services/BaseUrl";
 
 export default function Topics() {
   const { subject, level } = useParams();
@@ -25,7 +26,7 @@ export default function Topics() {
         setLoading(true);
         setError(null);
         
-        const response = await axios.get("http://localhost:5001/api/subjects/");
+        const response = await axios.get(`${API_BASE_URL}subjects`);
         const allSubjects = response.data.data || [];
 
         // Find the specific object matching BOTH the name and the level

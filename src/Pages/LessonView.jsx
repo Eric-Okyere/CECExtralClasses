@@ -5,12 +5,13 @@ import Confetti from "react-confetti";
 import Navbar from "../components/Navbar";
 import { 
   ChevronLeft, Video, Lock, CheckCircle2, 
-  Award, List, Loader2, AlertCircle, ArrowRight, RefreshCcw
+  Award, List, Loader2, AlertCircle, ArrowRight, RefreshCcw, FileX
 } from "lucide-react";
 
 // Audio Assets
 import clapSound from "../assets/Clapping_Sound_Effect(256k).mp3";
 import oohSound from "../assets/Ooh_-_Sound.mp3";
+import { API_BASE_URL } from "../services/BaseUrl";
 
 export default function LessonView() {
   const { subject, level, subStrand } = useParams();
@@ -21,15 +22,13 @@ export default function LessonView() {
   const [error, setError] = useState(null);
   const [activeVideoIndex, setActiveVideoIndex] = useState(0);
   
-  // Progress & Quiz Logic
   const [watchedVideos, setWatchedVideos] = useState([]);
   const [isQuizLocked, setIsQuizLocked] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState(null);
-  const [feedback, setFeedback] = useState(null); // 'correct' or 'wrong'
+  const [feedback, setFeedback] = useState(null); 
   const [showConfetti, setShowConfetti] = useState(false);
 
-  // Audio Instances
   const playClap = () => new Audio(clapSound).play();
   const playOoh = () => new Audio(oohSound).play();
 
@@ -37,7 +36,7 @@ export default function LessonView() {
     const fetchLessonData = async () => {
       try {
         setLoading(true);
-        const response = await axios.get("http://localhost:5001/api/lessons/");
+        const response = await axios.get(`${API_BASE_URL}lessons`);
         const allLessons = response.data.data || [];
         const decodedSub = decodeURIComponent(subStrand).trim().toLowerCase();
         
@@ -51,7 +50,7 @@ export default function LessonView() {
           setLesson(foundLesson);
           if (!foundLesson.videos?.length) setIsQuizLocked(false);
         } else {
-          setError("Lesson not found.");
+          setLesson(null); // Ensure lesson is explicitly null
         }
       } catch (err) {
         setError("Server connection failed.");
@@ -71,8 +70,7 @@ export default function LessonView() {
   };
 
   const handleOptionClick = (option, correctAnswer) => {
-    if (feedback) return; // Prevent multiple clicks
-
+    if (feedback) return;
     setSelectedOption(option);
     if (option === correctAnswer) {
       setFeedback('correct');
@@ -97,7 +95,35 @@ export default function LessonView() {
     setSelectedOption(null);
   };
 
-  if (loading) return <div className="h-screen flex items-center justify-center bg-[#0F172A] text-white"><Loader2 className="animate-spin" /></div>;
+  // 1. LOADING STATE
+  if (loading) return (
+    <div className="h-screen flex flex-col items-center justify-center bg-[#F8FAFC] text-blue-600">
+      <Loader2 className="animate-spin mb-4" size={40} />
+      <p className="font-black uppercase tracking-widest text-[10px]">Loading Lesson...</p>
+    </div>
+  );
+
+  // 2. NOT AVAILABLE / ERROR STATE
+  if (!lesson || error) return (
+    <div className="min-h-screen bg-[#F8FAFC]">
+      <Navbar />
+      <div className="flex flex-col items-center justify-center pt-32 px-6 text-center">
+        <div className="w-24 h-24 bg-red-50 text-red-500 rounded-[2.5rem] flex items-center justify-center mb-8 shadow-sm">
+          <FileX size={48} strokeWidth={1.5} />
+        </div>
+        <h2 className="text-4xl font-black text-slate-900 uppercase italic mb-4">Lesson Not Available</h2>
+        <p className="text-slate-500 max-w-md font-medium leading-relaxed mb-10">
+          We are currently working on this module for <span className="text-blue-600 font-bold uppercase">{subject} ({level})</span>. Check back soon for new videos and quizzes!
+        </p>
+        <button 
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-3 bg-slate-900 text-white px-10 py-5 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-600 transition-all shadow-xl active:scale-95"
+        >
+          <ChevronLeft size={18}/> Back to Topics
+        </button>
+      </div>
+    </div>
+  );
 
   const currentVideo = lesson.videos?.[activeVideoIndex];
   const quizItems = lesson.quiz || [];
@@ -108,7 +134,6 @@ export default function LessonView() {
     <div className="min-h-screen bg-[#F8FAFC] pb-20 relative overflow-x-hidden">
       {showConfetti && <Confetti width={window.innerWidth} height={window.innerHeight} numberOfPieces={2000} gravity={0.2} />}
       
-      {/* WRONG ANSWER OVERLAY */}
       {feedback === 'wrong' && (
         <div className="fixed inset-0 flex items-center justify-center text-6xl animate-bounce z-50 pointer-events-none">
           😭😢😢😢😭😢
@@ -151,7 +176,7 @@ export default function LessonView() {
             </div>
           </div>
 
-          {/* QUIZ SECTION (ONE BY ONE) */}
+          {/* QUIZ SECTION */}
           <div className="lg:col-span-5">
             <div className="bg-slate-900 p-10 rounded-[3.5rem] text-white shadow-2xl min-h-[600px] flex flex-col">
               <div className="flex justify-between items-center mb-10">
@@ -166,10 +191,10 @@ export default function LessonView() {
                 </div>
               ) : currentQuestionIndex < quizItems.length ? (
                 <div className="flex-grow flex flex-col">
-                  <p className="text-lg font-bold leading-tight mb-8">{currentQuiz.question}</p>
+                  <p className="text-lg font-bold leading-tight mb-8">{currentQuiz?.question}</p>
                   
                   <div className="space-y-3 mb-8">
-                    {currentQuiz.options.map((opt, i) => {
+                    {currentQuiz?.options.map((opt, i) => {
                       const isCorrect = opt === currentQuiz.answer;
                       const isSelected = selectedOption === opt;
                       
@@ -212,7 +237,6 @@ export default function LessonView() {
               )}
             </div>
           </div>
-
         </div>
       </div>
     </div>

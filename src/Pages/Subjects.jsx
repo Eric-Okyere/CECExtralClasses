@@ -3,31 +3,37 @@ import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { API_BASE_URL } from "../services/BaseUrl";
 
 export default function Subjects() {
   const [search, setSearch] = useState("");
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [userLevel, setUserLevel] = useState(null); // State for student level
+  const [userLevel, setUserLevel] = useState(null);
+  const [isAdmin, setIsAdmin] = useState(false); // State for admin status
   const navigate = useNavigate();
 
   useEffect(() => {
-    // --- GET STUDENT LEVEL FROM LOCALSTORAGE ---
+    // --- GET USER DATA FROM LOCALSTORAGE ---
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       const parsedData = JSON.parse(storedUser);
       
-      // Accessing directly based on your console log: studentProfile.level
+      // 1. Get the student's assigned level
       const level = parsedData.studentProfile?.level;
-      
       setUserLevel(level);
-      console.log(level); // Log only the level as requested
+
+      // 2. Check the "admin" property directly from your JSON structure
+      if (parsedData.admin === true) {
+        setIsAdmin(true);
+      }
     }
 
     const fetchSubjects = async () => {
       try {
         setLoading(true);
-        const response = await axios.get("http://localhost:5001/api/subjects/");
+        // Using your local backend URL
+        const response = await axios.get(`${API_BASE_URL}subjects`);
         const subjectsArray = response.data.data || [];
 
         const grouped = subjectsArray.reduce((acc, curr) => {
@@ -56,9 +62,10 @@ export default function Subjects() {
     fetchSubjects();
   }, []);
 
-  // --- RESTRICT ACCESS & ALERT ---
+  // --- 3. UPDATED NAVIGATION LOGIC ---
+  // If isAdmin is true, it bypasses the level check and the alert entirely
   const handleLevelClick = (subjectName, clickedLevel) => {
-    if (clickedLevel === userLevel) {
+    if (isAdmin || clickedLevel === userLevel) {
       navigate(`/topics/${subjectName}/${clickedLevel}`);
     } else {
       alert(`Please finish your current level (${userLevel || "assigned level"}) first.`);
@@ -129,15 +136,16 @@ export default function Subjects() {
 
               <div className="flex flex-wrap gap-3">
                 {subject.levels.sort().map((level) => {
-                  // HIGHLIGHT LOGIC
+                  // --- 4. STYLE LOGIC: If isAdmin is true, show all buttons as active Blue ---
                   const isActive = level === userLevel;
+                  const showAsActive = isAdmin || isActive;
 
                   return (
                     <button
                       key={level}
                       onClick={() => handleLevelClick(subject.name, level)}
                       className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all active:scale-95 ${
-                        isActive
+                        showAsActive
                           ? "bg-blue-600 text-white shadow-lg ring-2 ring-blue-400 ring-offset-2" 
                           : "bg-slate-100 text-slate-400 opacity-40 grayscale hover:opacity-60"
                       }`}
