@@ -81,10 +81,7 @@ function App() {
           path="/topics/:subject/:level" 
           element={<ProtectedRoute><Topics /></ProtectedRoute>} 
         />
-        {/* <Route 
-          path="/lesson/:subject/:level/:sub" 
-          element={<ProtectedRoute><Lesson /></ProtectedRoute>} 
-        /> */}
+        
 
         <Route path="/lesson/:id" element={
           <ProtectedRoute>
