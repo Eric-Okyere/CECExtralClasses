@@ -19,6 +19,9 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import VerifyEmail from "./Pages/VerifyEmail";
 import Profile from "./Pages/Profile";
 import LessonView from "./Pages/LessonView";
+import UserDetails from "./Pages/Userpage/UserDetails";
+import PrivacyPolicy from "./Pages/Userpage/PrivacyPolicy";
+import Terms from "./Pages/Userpage/Terms";
 
 function App() {
   return (
@@ -29,6 +32,9 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy/>} />
+        <Route path="/terms" element={<Terms />} />
+
 
         {/* PROTECTED ROUTES */}
         <Route 
@@ -88,9 +94,16 @@ function App() {
             <LessonDetails />
           </ProtectedRoute>
         } />
+
         <Route path="/profile/:id" element={
           <ProtectedRoute>
             <Profile />
+          </ProtectedRoute>
+        } />
+
+        <Route path="/admin/user/:id" element={
+          <ProtectedRoute>
+            <UserDetails />
           </ProtectedRoute>
         } />
       </Routes>
