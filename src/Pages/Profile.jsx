@@ -6,6 +6,7 @@ import {
   HiMail, HiPhone, HiUserGroup, HiIdentification, HiAcademicCap
 } from "react-icons/hi";
 import { API_BASE_URL } from "../services/BaseUrl";
+import Navbar from "../components/Navbar";
 
 const Loader2 = ({ className }) => (
   <div className={`w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin ${className}`} />
@@ -123,6 +124,8 @@ export default function Profile() {
   const contactPhone = user.role === 'child' ? user.parentId?.parentDetails?.phoneNumber : user.parentDetails?.phoneNumber;
 
   return (
+    <>
+    <Navbar />
     <div className="min-h-screen bg-[#F8FAFC] py-12 px-6 font-sans">
       <div className="max-w-4xl mx-auto space-y-10">
         
@@ -346,5 +349,6 @@ export default function Profile() {
         </AnimatePresence>
       </div>
     </div>
+    </>
   );
 }

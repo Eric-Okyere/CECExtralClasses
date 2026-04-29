@@ -7,6 +7,7 @@ import {
   CheckCircle2, BookOpen, Eye,
 } from "lucide-react";
 import { API_BASE_URL } from "../../services/BaseUrl";
+import Navbar from "../../components/Navbar";
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -84,6 +85,8 @@ export default function AdminDashboard() {
   if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-blue-600" size={40} /></div>;
 
   return (
+    <>
+    <Navbar />
     <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-10 text-sm">
       <div className="max-w-7xl mx-auto mb-10">
         <div className="flex flex-col md:flex-row justify-between gap-6">
@@ -169,5 +172,6 @@ export default function AdminDashboard() {
         </div>
       )}
     </div>
+    </>
   );
 }
