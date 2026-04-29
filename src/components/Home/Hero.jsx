@@ -27,7 +27,7 @@ export default function Hero() {
   };
 
   return (
-    <section className="bg-blue-600 text-white py-24 px-6 overflow-hidden relative">
+    <section className="bg-blue-600 text-white pt-4 pb-4 px-6 overflow-hidden relative">
       <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-16 items-center relative z-10">
         
         <motion.div variants={textContainerVariants} initial="hidden" animate="visible">

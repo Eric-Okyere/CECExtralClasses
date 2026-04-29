@@ -142,7 +142,7 @@ export default function Profile() {
               <div className="flex-1 text-center md:text-left">
                 <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-6">
                   <h1 className="text-4xl font-black uppercase tracking-tighter italic">
-                    {user.name} <span className="text-blue-200">{user.surname}</span>
+                    {user.name} 
                   </h1>
                   <span className="bg-white/20 backdrop-blur-md px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-white/10">
                     {user.role} Profile

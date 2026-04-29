@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { NavLink, Link, useNavigate } from "react-router-dom";
 import { 
   HiMenu, HiX, HiChevronDown, HiUser, 
-  HiLogout, HiViewGrid, HiShieldCheck, HiCog 
+  HiLogout, HiViewGrid, HiShieldCheck, HiArrowLeft 
 } from "react-icons/hi"; 
 import { API_BASE_URL } from "../services/BaseUrl";
 import Logo from "../assets/Logo.jpeg";
@@ -11,6 +11,7 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [user, setUser] = useState(null);
+  const [parentData, setParentData] = useState(null); // To store the original parent session
   const [linkedChildren, setLinkedChildren] = useState([]);
   const navigate = useNavigate();
   const dropdownRef = useRef(null);
@@ -18,12 +19,19 @@ export default function Navbar() {
   useEffect(() => {
     const checkUser = () => {
       const storedData = localStorage.getItem("user");
+      const storedParent = localStorage.getItem("parentSession");
+
       if (storedData) {
         const parsed = JSON.parse(storedData);
         const currentUser = parsed.user || parsed;
         setUser(currentUser);
 
-        // Fetch children if parent is logged in
+        // Keep track of the actual parent if we are currently switched to a child
+        if (storedParent) {
+          setParentData(JSON.parse(storedParent));
+        }
+
+        // Only fetch children if the current active user is a parent
         if (currentUser.role === "parent") {
           fetchChildren(currentUser._id);
         }
@@ -48,7 +56,10 @@ export default function Navbar() {
 
   const fetchChildren = async (parentId) => {
     try {
-      const res = await fetch(`${API_BASE_URL}auth/children/${parentId}`);
+      const token = localStorage.getItem("token");
+      const res = await fetch(`${API_BASE_URL}auth/children/${parentId}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
       const data = await res.json();
       if (res.ok) setLinkedChildren(data);
     } catch (err) {
@@ -56,17 +67,35 @@ export default function Navbar() {
     }
   };
 
-  const handleSwitchAccount = (child) => {
+  // --- SWITCH TO CHILD ---
+  const handleSwitchToChild = (child) => {
+    // Save the current parent (if not already acting as a child)
+    if (user.role === 'parent') {
+      localStorage.setItem("parentSession", JSON.stringify(user));
+    }
+    
     localStorage.setItem("user", JSON.stringify(child));
-    setUser(child);
     setDropdownOpen(false);
     navigate("/dashboard");
     window.location.reload(); 
   };
 
+  // --- SWITCH BACK TO PARENT ---
+  const handleBackToParent = () => {
+    const storedParent = localStorage.getItem("parentSession");
+    if (storedParent) {
+      localStorage.setItem("user", storedParent);
+      localStorage.removeItem("parentSession"); // Clear the temporary session
+      setDropdownOpen(false);
+      navigate("/dashboard");
+      window.location.reload();
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("user");
     localStorage.removeItem("token");
+    localStorage.removeItem("parentSession");
     setUser(null);
     setMenuOpen(false);
     setDropdownOpen(false);
@@ -101,65 +130,88 @@ export default function Navbar() {
               <div className="relative" ref={dropdownRef}>
                 <button 
                   onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className="flex items-center gap-2 bg-blue-800/50 pl-2 pr-4 py-1.5 rounded-2xl border border-white/10 hover:bg-blue-900 transition-all"
+                  className={`flex items-center gap-2 pl-2 pr-4 py-1.5 rounded-2xl border transition-all ${
+                    user.role === 'child' ? 'bg-emerald-600/50 border-emerald-400' : 'bg-blue-800/50 border-white/10'
+                  }`}
                 >
-                  <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center text-blue-900 font-black">
+                  <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center text-blue-900 font-black shadow-inner">
                     {user.name?.charAt(0)}
                   </div>
-                  <span className="normal-case font-bold tracking-normal">
-                    {user.name?.split(' ')[0]}
-                  </span>
+                  <div className="text-left">
+                    <p className="text-[10px] font-black opacity-60 leading-none mb-0.5">{user.role}</p>
+                    <p className="normal-case font-bold tracking-normal leading-none">
+                      {user.name?.split(' ')[0]}
+                    </p>
+                  </div>
                   <HiChevronDown className={`transition-transform ${dropdownOpen ? "rotate-180" : ""}`} />
                 </button>
 
                 {/* DROPDOWN */}
                 {dropdownOpen && (
-                  <div className="absolute right-0 mt-3 w-64 bg-white rounded-[2rem] shadow-2xl py-4 text-slate-800 border border-slate-100 animate-in fade-in zoom-in duration-200">
-                    <div className="px-6 py-2 border-b border-slate-50 mb-2">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Signed in as</p>
-                      <p className="text-xs font-black text-blue-700 truncate">{user.email || user.role}</p>
-                    </div>
-
-                    {/* ACCOUNT SWITCHING */}
-                    {user.role === "parent" && linkedChildren.length > 0 && (
-                      <div className="px-4 py-2">
-                        <p className="text-[9px] font-black text-slate-300 uppercase px-2 mb-2 tracking-tighter">Switch Account</p>
-                        {linkedChildren.map((child) => (
-                          <button
-                            key={child._id}
-                            onClick={() => handleSwitchAccount(child)}
-                            className="w-full flex items-center gap-3 px-3 py-2 hover:bg-blue-50 rounded-xl transition-colors text-left"
-                          >
-                            <div className="w-6 h-6 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-[10px] font-black">{child.name.charAt(0)}</div>
-                            <span className="text-xs font-bold text-slate-600">{child.name}</span>
-                          </button>
-                        ))}
+                  <div className="absolute right-0 mt-3 w-64 bg-white rounded-[2rem] shadow-2xl py-4 text-slate-800 border border-slate-100 animate-in fade-in zoom-in duration-200 overflow-hidden">
+                    
+                    {/* Switch back to parent option (if currently a child) */}
+                    {user.role === 'child' && parentData && (
+                      <div className="px-3 pb-3 border-b border-slate-50 mb-2">
+                        <button 
+                          onClick={handleBackToParent}
+                          className="w-full bg-blue-50 text-blue-700 p-3 rounded-2xl flex items-center gap-3 font-black text-[10px] uppercase tracking-widest hover:bg-blue-100 transition-all"
+                        >
+                          <HiArrowLeft /> Back to {parentData.name.split(' ')[0]}
+                        </button>
                       </div>
                     )}
 
-                    <div className="h-[1px] bg-slate-50 my-2" />
+                    <div className="px-6 py-2">
+                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Account</p>
+                      <p className="text-xs font-black text-blue-700 truncate">{user.email || user.role}</p>
+                    </div>
 
-                    {/* NAVIGATION LINKS */}
-                    <Link to="/dashboard" onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-6 py-2 hover:bg-slate-50 text-xs font-bold transition-colors">
-                      <HiViewGrid size={18} className="text-blue-600" /> Dashboard
-                    </Link>
-
-                    {/* THE PROFILE BUTTON */}
-                    <Link to={`/profile/${user._id}`} onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-6 py-2 hover:bg-slate-50 text-xs font-bold transition-colors">
-                      <HiUser size={18} className="text-blue-600" /> My Profile
-                    </Link>
-
-                    {user.admin && (
-                      <Link to="/admindashboard" onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-6 py-2 hover:bg-red-50 text-red-600 font-black text-xs transition-colors">
-                        <HiShieldCheck size={18} /> Admin Panel
-                      </Link>
+                    {/* ACCOUNT SWITCHING LIST (Parent Only) */}
+                    {user.role === "parent" && linkedChildren.length > 0 && (
+                      <div className="px-4 py-2 mt-2 bg-slate-50/50">
+                        <p className="text-[9px] font-black text-slate-400 uppercase px-2 mb-2 tracking-widest">Switch Student</p>
+                        <div className="space-y-1">
+                          {linkedChildren.map((child) => (
+                            <button
+                              key={child._id}
+                              onClick={() => handleSwitchToChild(child)}
+                              className="w-full flex items-center gap-3 px-3 py-2 hover:bg-white hover:shadow-sm rounded-xl transition-all text-left group"
+                            >
+                              <div className="w-7 h-7 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center text-[11px] font-black group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                                {child.name.charAt(0)}
+                              </div>
+                              <span className="text-xs font-bold text-slate-600">{child.name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     )}
+
+                    <div className="h-[1px] bg-slate-100 my-2" />
+
+                    {/* NAV LINKS */}
+                    <div className="space-y-0.5">
+                      <Link to={`/dashboard/${user._id}`} onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-6 py-2.5 hover:bg-slate-50 text-xs font-bold transition-colors">
+                        <HiViewGrid size={18} className="text-blue-600" /> Dashboard
+                      </Link>
+
+                      <Link to={`/profile/${user._id}`} onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-6 py-2.5 hover:bg-slate-50 text-xs font-bold transition-colors">
+                        <HiUser size={18} className="text-blue-600" /> My Profile
+                      </Link>
+
+                      {user.admin && (
+                        <Link to="/admindashboard" onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-6 py-2.5 hover:bg-red-50 text-red-600 font-black text-xs transition-colors">
+                          <HiShieldCheck size={18} /> Admin Panel
+                        </Link>
+                      )}
+                    </div>
 
                     <button 
                       onClick={handleLogout}
-                      className="w-full flex items-center gap-3 px-6 py-2 mt-2 text-red-500 hover:bg-red-50 font-black text-xs transition-colors border-t border-slate-50 pt-4"
+                      className="w-full flex items-center gap-3 px-6 py-3 mt-2 text-red-500 hover:bg-red-50 font-black text-xs transition-colors border-t border-slate-100"
                     >
-                      <HiLogout size={18} /> Logout
+                      <HiLogout size={18} /> Logout Session
                     </button>
                   </div>
                 )}
@@ -184,14 +236,19 @@ export default function Navbar() {
       {/* MOBILE MENU */}
       <div className={`md:hidden overflow-hidden transition-all duration-300 bg-blue-800 ${menuOpen ? "max-h-screen border-t border-white/10" : "max-h-0"}`}>
         <div className="flex flex-col p-8 space-y-6 font-black uppercase tracking-widest text-sm">
+          {user?.role === 'child' && parentData && (
+             <button onClick={handleBackToParent} className="bg-white/10 p-4 rounded-2xl flex items-center gap-2">
+               <HiArrowLeft /> Switch back to {parentData.name.split(' ')[0]}
+             </button>
+          )}
           <NavLink to="/" onClick={() => setMenuOpen(false)}>Home</NavLink>
           {user ? (
             <>
               <NavLink to="/subjects" onClick={() => setMenuOpen(false)}>Subjects</NavLink>
-              <NavLink to="/dashboard" onClick={() => setMenuOpen(false)}>Dashboard</NavLink>
+              <NavLink to={`/dashboard/${user._id}`} onClick={() => setMenuOpen(false)}>Dashboard</NavLink>
               <NavLink to={`/profile/${user._id}`} onClick={() => setMenuOpen(false)}>My Profile</NavLink>
               {user.admin && <NavLink to="/admindashboard" onClick={() => setMenuOpen(false)} className="text-red-400">Admin</NavLink>}
-              <button onClick={handleLogout} className="bg-red-500 text-white py-4 rounded-2xl shadow-xl">Logout</button>
+              <button onClick={handleLogout} className="bg-red-500 text-white py-4 rounded-2xl shadow-xl">Logout Session</button>
             </>
           ) : (
             <>

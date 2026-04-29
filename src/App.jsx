@@ -22,6 +22,8 @@ import LessonView from "./Pages/LessonView";
 import UserDetails from "./Pages/Userpage/UserDetails";
 import PrivacyPolicy from "./Pages/Userpage/PrivacyPolicy";
 import Terms from "./Pages/Userpage/Terms";
+import TimetableCreator from "./Pages/Userpage/TimetableCreator";
+import AddTaskModal from "./Pages/Userpage/AddTaskModal";
 
 function App() {
   return (
@@ -38,7 +40,7 @@ function App() {
 
         {/* PROTECTED ROUTES */}
         <Route 
-          path="/dashboard" 
+          path="/dashboard/:id" 
           element={<ProtectedRoute><Dashboard /></ProtectedRoute>} 
         />
         <Route 
@@ -104,6 +106,13 @@ function App() {
         <Route path="/admin/user/:id" element={
           <ProtectedRoute>
             <UserDetails />
+          </ProtectedRoute>
+        } />
+   
+
+        <Route path="/timetable" element={
+          <ProtectedRoute>
+            <AddTaskModal />
           </ProtectedRoute>
         } />
       </Routes>
