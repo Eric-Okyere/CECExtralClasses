@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { 
   Users, Phone, GraduationCap, Shield, 
   Loader2, Search, ExternalLink, Calendar, 
@@ -94,6 +94,27 @@ export default function AdminDashboard() {
             <div className="p-3 bg-blue-600 rounded-2xl text-white"><Shield size={24} /></div>
             <h1 className="text-3xl font-black uppercase italic">Management Console</h1>
           </div>
+
+
+            <Link 
+              to={"/all-subjects"}
+               className="flex items-center gap-2 px-6 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-600 transition-all shadow-lg shadow-slate-200"
+             >
+               <BookOpen size={16} />
+               Manage Subjects
+             </Link>
+
+
+            <Link 
+              to={"/manage-lessons"}
+              
+               className="flex items-center gap-2 px-6 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-600 transition-all shadow-lg shadow-slate-200"
+             >
+               <BookOpen size={16} />
+               Manage Lessons
+             </Link>
+       
+
           <div className="flex gap-3">
              <input 
               placeholder="Search..." 

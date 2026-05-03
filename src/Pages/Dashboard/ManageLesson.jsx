@@ -107,9 +107,9 @@ const ManageLessons = () => {
               <button onClick={() => navigate(`/lesson/${lesson._id}`)}  className="text-gray-600 hover:text-blue-600 font-medium text-sm px-3 py-1">
                 Preview
               </button>
-              <button className="text-gray-600 hover:text-blue-600 font-medium text-sm px-3 py-1">
+              {/* <button className="text-gray-600 hover:text-blue-600 font-medium text-sm px-3 py-1">
                 Edit
-              </button>
+              </button> */}
               <button className="text-red-500 hover:text-red-700 font-medium text-sm px-3 py-1">
                 Delete
               </button>

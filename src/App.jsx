@@ -24,6 +24,7 @@ import PrivacyPolicy from "./Pages/Userpage/PrivacyPolicy";
 import Terms from "./Pages/Userpage/Terms";
 import TimetableCreator from "./Pages/Userpage/TimetableCreator";
 import AddTaskModal from "./Pages/Userpage/AddTaskModal";
+import NotFound from "./Pages/NotFound";
 
 function App() {
   return (
@@ -102,6 +103,8 @@ function App() {
             <Profile />
           </ProtectedRoute>
         } />
+
+        <Route path="*" element={<NotFound />} />
 
         <Route path="/admin/user/:id" element={
           <ProtectedRoute>
