@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { API_BASE_URL } from "../services/BaseUrl";
+import { Users, ArrowRight } from "lucide-react"; // Optional icons for the message
 
 export default function Subjects() {
   const [search, setSearch] = useState("");
@@ -11,6 +12,7 @@ export default function Subjects() {
   const [loading, setLoading] = useState(true);
   const [userLevel, setUserLevel] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false); 
+  const [isParent, setIsParent] = useState(false); // New state to track parent role
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -19,13 +21,13 @@ export default function Subjects() {
       const parsedData = JSON.parse(storedUser);
       const currentUser = parsedData.user || parsedData;
       
-      // Get the level from learningProfile (matches your profile component)
+      // 1. Identify Role and Admin status
+      setIsAdmin(currentUser.admin === true);
+      setIsParent(currentUser.role === "parent");
+
+      // 2. Get the level
       const level = currentUser.learningProfile?.level || currentUser.studentProfile?.level;
       setUserLevel(level);
-
-      if (currentUser.admin === true) {
-        setIsAdmin(true);
-      }
     }
 
     const fetchSubjects = async () => {
@@ -61,17 +63,41 @@ export default function Subjects() {
   }, []);
 
   const handleLevelClick = (subjectName, clickedLevel) => {
-    // Admins can go anywhere, users can only click their specific level
     if (isAdmin || clickedLevel === userLevel) {
       navigate(`/topics/${subjectName}/${clickedLevel}`);
     } else {
-      alert(`Access Restricted: Your assigned level is ${userLevel || "not set"}. Please contact your parent or admin.`);
+      alert(`Access Restricted: Your assigned level is ${userLevel || "not set"}.`);
     }
   };
 
   const filteredSubjects = subjects.filter((sub) =>
     sub.name.toLowerCase().includes(search.toLowerCase())
   );
+
+  // --- LOGIC: PARENT VIEW RESTRICTION ---
+  // If user is a parent but NOT an admin, show a "Switch to Student" message
+  if (!loading && isParent && !isAdmin) {
+    return (
+      <div className="bg-gray-50 min-h-screen font-sans">
+        <Navbar />
+        <div className="max-w-4xl mx-auto pt-32 px-6 flex flex-col items-center text-center">
+          <div className="w-24 h-24 bg-blue-100 text-blue-600 rounded-[2.5rem] flex items-center justify-center mb-8 shadow-sm">
+            <Users size={48} />
+          </div>
+          <h2 className="text-4xl font-black text-slate-900 uppercase italic mb-4">Switch to Student View</h2>
+          <p className="text-slate-500 font-bold uppercase tracking-widest text-[10px] mb-8 max-w-md">
+            To view lessons and take quizzes, please switch to a student profile from your dashboard.
+          </p>
+          <button 
+            // onClick={() => navigate('/dashboard')}
+            className="flex items-center gap-3 bg-blue-600 text-white px-10 py-5 rounded-2xl font-black uppercase text-xs shadow-xl shadow-blue-200 hover:scale-105 transition-all"
+          >
+            Click on your user name on the navbar
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-50 min-h-screen font-sans">
@@ -86,7 +112,7 @@ export default function Subjects() {
           Learning <span className="text-yellow-400">Library</span>
         </h1>
         <p className="relative z-10 mt-4 text-blue-100 font-bold uppercase tracking-widest text-[10px] max-w-xl mx-auto">
-          {userLevel ? `Curriculum for ${userLevel}` : "Explore JHS Curriculum"}
+          {isAdmin ? "Admin Console: All Access" : (userLevel ? `Curriculum for ${userLevel}` : "Explore JHS Curriculum")}
         </p>
       </div>
 

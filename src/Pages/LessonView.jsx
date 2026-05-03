@@ -5,7 +5,7 @@ import Confetti from "react-confetti";
 import Navbar from "../components/Navbar";
 import { 
   ChevronLeft, Video, Lock, CheckCircle2, 
-  Award, List, Loader2, FileX, ArrowRight, Timer as TimerIcon, Play
+  Award, List, Loader2, FileX, ArrowRight, Timer as TimerIcon, Play, Users
 } from "lucide-react";
 import { API_BASE_URL } from "../services/BaseUrl";
 
@@ -20,12 +20,16 @@ export default function LessonView() {
   const [lesson, setLesson] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [user, setUser] = useState(JSON.parse(localStorage.getItem("user")));
+  const [user, setUser] = useState(() => {
+    const saved = localStorage.getItem("user");
+    const parsed = saved ? JSON.parse(saved) : null;
+    return parsed?.user ? parsed.user : parsed;
+  });
   
   const [activeVideoIndex, setActiveVideoIndex] = useState(0);
   const [watchedVideos, setWatchedVideos] = useState([]);
   const [isQuizLocked, setIsQuizLocked] = useState(true);
-  const [isQuizStarted, setIsQuizStarted] = useState(false); // NEW: Quiz Start Toggle
+  const [isQuizStarted, setIsQuizStarted] = useState(false); 
   
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState(null);
@@ -39,24 +43,47 @@ export default function LessonView() {
   const playClap = () => new Audio(clapSound).play();
   const playOoh = () => new Audio(oohSound).play();
 
-  // --- 1. FETCH LESSON DATA ---
+  // --- 1. FETCH LESSON DATA & CHECK UNLOCK STATUS ---
   useEffect(() => {
     const fetchLessonData = async () => {
       try {
         setLoading(true);
+        const userId = user?._id || user?.user?._id;
+        let freshUser = user;
+
+        if (userId) {
+            try {
+                const userRes = await axios.get(`${API_BASE_URL}auth/user/${userId}`);
+                freshUser = userRes.data;
+                setUser(freshUser);
+                localStorage.setItem("user", JSON.stringify(freshUser));
+            } catch (userErr) {
+                console.error("Using local data", userErr);
+            }
+        }
+
         const response = await axios.get(`${API_BASE_URL}lessons`);
         const allLessons = response.data.data || [];
-        const decodedSub = decodeURIComponent(subStrand).trim().toLowerCase();
+        const decodedSub = decodeURIComponent(subStrand || "").trim().toLowerCase();
         
         const foundLesson = allLessons.find((l) => 
-          l.subject.toLowerCase() === subject.toLowerCase() && 
-          l.level.toLowerCase() === level.toLowerCase() &&
-          (l.subStrand.toLowerCase() === decodedSub || l.subStrand.toLowerCase().includes(decodedSub))
+          l.subject?.toLowerCase() === subject?.toLowerCase() && 
+          l.level?.toLowerCase() === level?.toLowerCase() &&
+          (l.subStrand?.toLowerCase() === decodedSub || l.subStrand?.toLowerCase().includes(decodedSub))
         );
 
         if (foundLesson) {
           setLesson(foundLesson);
-          if (!foundLesson.videos?.length) setIsQuizLocked(false);
+          const unlockedList = freshUser?.unlockedLessons || [];
+          const alreadyUnlocked = unlockedList.some(ul => 
+            ul.subject?.toLowerCase() === subject?.toLowerCase() &&
+            ul.subStrand?.toLowerCase() === decodedSub
+          );
+
+          if (alreadyUnlocked || !foundLesson.videos?.length) {
+            setIsQuizLocked(false);
+            setWatchedVideos(foundLesson.videos?.map(v => v._id) || []);
+          }
         } else {
           setError("Lesson not found");
         }
@@ -71,8 +98,7 @@ export default function LessonView() {
 
   // --- 2. TIMER LOGIC ---
   useEffect(() => {
-    // Only run timer if quiz is UNLOCKED and user has CLICKED START
-    if (!isQuizLocked && isQuizStarted && !feedback && lesson?.quiz?.length > currentQuestionIndex) {
+    if (!isQuizLocked && isQuizStarted && !feedback && (lesson?.quiz?.length || 0) > currentQuestionIndex) {
       timerRef.current = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
@@ -96,7 +122,7 @@ export default function LessonView() {
   const syncProgressAndXP = async (finalCorrectCount) => {
     try {
       const token = localStorage.getItem("token");
-      const userId = user._id || user.user?._id;
+      const userId = user?._id || user?.user?._id;
       const earnedXP = finalCorrectCount * 2;
 
       await axios.post(`${API_BASE_URL}progress/save`, {
@@ -112,8 +138,11 @@ export default function LessonView() {
       });
 
       const updatedUser = { ...user };
-      const profile = updatedUser.learningProfile || updatedUser.user?.learningProfile;
-      if (profile) profile.xp += earnedXP;
+      if (updatedUser.learningProfile) {
+        updatedUser.learningProfile.xp += earnedXP;
+      } else if (updatedUser.user?.learningProfile) {
+        updatedUser.user.learningProfile.xp += earnedXP;
+      }
       localStorage.setItem("user", JSON.stringify(updatedUser));
       setUser(updatedUser);
     } catch (err) {
@@ -121,11 +150,35 @@ export default function LessonView() {
     }
   };
 
-  const handleVideoEnded = (videoId) => {
+  const handleVideoEnded = async (videoId) => {
     if (!watchedVideos.includes(videoId)) {
       const updated = [...watchedVideos, videoId];
       setWatchedVideos(updated);
-      if (updated.length === lesson.videos.length) setIsQuizLocked(false);
+      
+      if (updated.length === (lesson?.videos?.length || 0)) {
+        setIsQuizLocked(false); 
+        try {
+          const userId = user?._id || user?.user?._id;
+          await axios.post(`${API_BASE_URL}auth/unlock-lesson`, {
+            userId: userId,
+            lessonData: { subject, level, subStrand: decodeURIComponent(subStrand || "").trim() }
+          });
+          
+          const updatedUser = { ...user };
+          if (!updatedUser.unlockedLessons) updatedUser.unlockedLessons = [];
+          const existsLocally = updatedUser.unlockedLessons.some(ul => 
+            ul.subStrand === decodeURIComponent(subStrand || "").trim()
+          );
+
+          if (!existsLocally) {
+            updatedUser.unlockedLessons.push({ subject, level, subStrand: decodeURIComponent(subStrand || "").trim() });
+            localStorage.setItem("user", JSON.stringify(updatedUser));
+            setUser(updatedUser);
+          }
+        } catch (err) {
+          console.error("Failed to persist unlock status", err);
+        }
+      }
     }
   };
 
@@ -150,7 +203,7 @@ export default function LessonView() {
   };
 
   const checkIfQuizFinished = (count) => {
-    if (currentQuestionIndex === lesson.quiz.length - 1) {
+    if (currentQuestionIndex === (lesson?.quiz?.length || 0) - 1) {
       syncProgressAndXP(count);
     }
   };
@@ -161,6 +214,23 @@ export default function LessonView() {
     setTimeLeft(15);
     setCurrentQuestionIndex((prev) => prev + 1);
   };
+
+  // --- LOGIC: PARENT VIEW RESTRICTION ---
+  if (!loading && user?.role === "parent" && !user?.admin) {
+    return (
+      <div className="min-h-screen bg-[#F8FAFC]">
+        <Navbar />
+        <div className="flex flex-col items-center justify-center pt-32 px-6 text-center">
+          <div className="w-24 h-24 bg-blue-50 text-blue-600 rounded-[2.5rem] flex items-center justify-center mb-8 shadow-sm">
+            <Users size={48} strokeWidth={1.5} />
+          </div>
+          <h2 className="text-4xl font-black text-slate-900 uppercase italic mb-4">Switch to Student View</h2>
+          <p className="text-slate-400 font-black uppercase tracking-widest text-[10px] mb-8">Please switch to a student profile to start this lesson.</p>
+          <button onClick={() => navigate('/dashboard')} className="bg-blue-600 text-white px-10 py-5 rounded-2xl font-black uppercase text-xs">Go to Dashboard</button>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) return (
     <div className="h-screen flex flex-col items-center justify-center bg-[#F8FAFC] text-blue-600">
@@ -190,13 +260,10 @@ export default function LessonView() {
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-20 relative overflow-x-hidden">
       {showConfetti && <Confetti width={window.innerWidth} height={window.innerHeight} numberOfPieces={500} />}
-      
       {feedback === 'wrong' && (
         <div className="fixed inset-0 flex items-center justify-center text-6xl animate-bounce z-50 pointer-events-none">😢</div>
       )}
-
       <Navbar />
-      
       <div className="max-w-[1400px] mx-auto px-6 pt-10">
         <header className="mb-10">
           <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-400 font-black text-[10px] uppercase mb-4"><ChevronLeft size={14}/> Back</button>
@@ -204,8 +271,6 @@ export default function LessonView() {
         </header>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-          
-          {/* VIDEO SECTION */}
           <div className="lg:col-span-7 space-y-6">
             <div className="bg-white p-3 rounded-[3rem] shadow-xl border border-white">
               <div className="aspect-video bg-black rounded-[2.5rem] overflow-hidden">
@@ -235,14 +300,11 @@ export default function LessonView() {
             </div>
           </div>
 
-          {/* QUIZ SECTION */}
           <div className="lg:col-span-5">
             <div className="bg-slate-900 p-10 rounded-[3.5rem] text-white shadow-2xl min-h-[600px] flex flex-col relative overflow-hidden">
-              
               {!isQuizLocked && isQuizStarted && !feedback && currentQuestionIndex < quizItems.length && (
                 <div className="absolute top-0 left-0 h-1.5 bg-blue-500 transition-all duration-1000 linear" style={{ width: `${(timeLeft / 15) * 100}%` }} />
               )}
-
               <div className="flex justify-between items-center mb-10">
                 <div className="flex items-center gap-2">
                   <TimerIcon size={18} className={timeLeft < 5 ? "text-red-500 animate-pulse" : "text-blue-400"} />
@@ -250,15 +312,12 @@ export default function LessonView() {
                 </div>
                 <span className="text-[10px] font-black bg-white/10 px-3 py-1 rounded-full">{currentQuestionIndex + 1} / {quizItems.length}</span>
               </div>
-
               {isQuizLocked ? (
-                /* PHASE 1: LOCKED */
                 <div className="flex-grow flex flex-col items-center justify-center text-center">
                   <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-4"><Lock className="text-slate-600" /></div>
                   <p className="text-xs font-black uppercase text-slate-500 px-6 italic">Watch all videos to unlock the quiz</p>
                 </div>
               ) : !isQuizStarted ? (
-                /* PHASE 2: UNLOCKED BUT NOT STARTED */
                 <div className="flex-grow flex flex-col items-center justify-center text-center">
                   <div className="w-20 h-20 bg-blue-600 rounded-[2rem] flex items-center justify-center mb-6 shadow-2xl shadow-blue-500/20"><Play className="text-white fill-current" size={32} /></div>
                   <h3 className="text-2xl font-black uppercase italic mb-2">Quiz Ready!</h3>
@@ -271,11 +330,10 @@ export default function LessonView() {
                   </button>
                 </div>
               ) : currentQuestionIndex < quizItems.length ? (
-                /* PHASE 3: QUIZ IN PROGRESS */
                 <div className="flex-grow flex flex-col">
                   <p className="text-lg font-bold leading-tight mb-8">{currentQuiz?.question}</p>
                   <div className="space-y-3 mb-8">
-                    {currentQuiz?.options.map((opt, i) => {
+                    {currentQuiz?.options?.map((opt, i) => {
                       const isCorrect = opt === currentQuiz.answer;
                       const isSelected = selectedOption === opt;
                       let btnClass = "bg-white/5 border-transparent text-slate-400";
@@ -290,7 +348,7 @@ export default function LessonView() {
                   </div>
                   {feedback && (
                     <div className="mt-auto animate-in fade-in slide-in-from-bottom-4">
-                       <p className="text-[10px] text-slate-500 uppercase font-black mb-4 tracking-tighter">Tip: <span className="text-slate-300 font-medium lowercase">{currentQuiz.explanation}</span></p>
+                       <p className="text-[10px] text-slate-500 uppercase font-black mb-4 tracking-tighter">Tip: <span className="text-slate-300 font-medium lowercase">{currentQuiz?.explanation}</span></p>
                        <button onClick={nextQuestion} className="w-full bg-blue-600 py-5 rounded-2xl font-black uppercase text-[10px] tracking-[0.2em] flex items-center justify-center gap-3">
                          {isLastQuestion ? "View Results" : "Next Challenge"} <ArrowRight size={16}/>
                        </button>
@@ -298,7 +356,6 @@ export default function LessonView() {
                   )}
                 </div>
               ) : (
-                /* PHASE 4: RESULTS */
                 <div className="flex-grow flex flex-col items-center justify-center text-center">
                   <CheckCircle2 size={60} className="text-emerald-500 mb-4" />
                   <h2 className="text-2xl font-black uppercase italic">Lesson Mastered!</h2>
