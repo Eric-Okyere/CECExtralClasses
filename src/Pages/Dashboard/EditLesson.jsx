@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   Plus, Trash2, BookOpen, Layers, Save, 
@@ -6,10 +6,12 @@ import {
 } from "lucide-react";
 import { API_BASE_URL } from "../../services/BaseUrl";
 
-
 export default function EditLesson() {
   const { id } = useParams();
   const navigate = useNavigate();
+
+  // Reference for the questions scroll container
+  const scrollContainerRef = useRef(null);
 
   // Data for Dropdowns
   const [subjects, setSubjects] = useState([]);
@@ -131,17 +133,31 @@ export default function EditLesson() {
   const removeNewVideo = (index) => setForm(p => ({ ...p, newVideos: p.newVideos.filter((_, i) => i !== index) }));
 
   // --- HANDLERS: QUIZ ---
-  const addQuestion = () => setForm(p => ({ ...p, quiz: [...p.quiz, { question: "", options: ["", "", "", ""], answer: "", explanation: "" }] }));
+  // Prepends the new question to the beginning of the array so it appears at the top
+  const addQuestion = () => {
+    setForm(p => ({ 
+      ...p, 
+      quiz: [{ question: "", options: ["", "", "", ""], answer: "", explanation: "" }, ...p.quiz] 
+    }));
+
+    // Instantly scrolls the container back to the top view so the user can see the new form fields
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
   const updateQuestion = (index, field, value) => {
     const updated = [...form.quiz];
     updated[index][field] = value;
     setForm({ ...form, quiz: updated });
   };
+
   const updateOption = (qIndex, optIndex, value) => {
     const updated = [...form.quiz];
     updated[qIndex].options[optIndex] = value;
     setForm({ ...form, quiz: updated });
   };
+
   const removeQuestion = (index) => setForm(p => ({ ...p, quiz: p.quiz.filter((_, i) => i !== index) }));
 
   // --- SUBMIT ---
@@ -165,7 +181,7 @@ export default function EditLesson() {
       const res = await fetch(`${API_BASE_URL}lessons/${id}`, { method: "PUT", body: formData });
       const result = await res.json();
       if (result.success) {
-        alert("Curriculum updated successfully.");
+        alert("Lesson updated successfully.");
         navigate("/manage-lessons");
       }
     } catch (err) {
@@ -295,7 +311,8 @@ export default function EditLesson() {
                </button>
              </div>
 
-             <div className="space-y-6 max-h-[1000px] overflow-y-auto pr-4 custom-scrollbar pb-20">
+             {/* Attached scrollContainerRef here */}
+             <div ref={scrollContainerRef} className="space-y-6 max-h-[1000px] overflow-y-auto pr-4 custom-scrollbar pb-20">
                 {form.quiz.map((q, index) => (
                   <div key={index} className="bg-white p-10 rounded-[4rem] border border-slate-100 shadow-sm relative group hover:border-blue-200 transition-all">
                     <button type="button" onClick={() => removeQuestion(index)} className="absolute top-10 right-10 text-slate-200 hover:text-red-500 transition-colors">
