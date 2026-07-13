@@ -159,59 +159,8 @@ export default function Dashboard() {
             <p className="text-[10px] font-black uppercase opacity-50">Total Questions Correct</p>
           </div>
         </div>
-
-        {/* 📅 UNIQUE WEEKLY TIMETABLE */}
-        <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100 mb-10">
-          <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-            <div className="flex items-center gap-3">
-              <Calendar className="text-blue-600" size={20} />
-              <h2 className="font-black uppercase text-xs tracking-widest text-slate-400">My Study Schedule</h2>
-            </div>
-            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              {daysOfWeek.map(day => (
-                <button
-                  key={day}
-                  onClick={() => setActiveDay(day)}
-                  className={`px-4 py-2 rounded-xl font-black text-[9px] uppercase transition-all ${
-                    activeDay === day ? "bg-slate-900 text-white" : "bg-slate-50 text-slate-400"
-                  }`}
-                >
-                  {day.substring(0, 3)}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            {!currentDayData || currentDayData.timeSlots.length === 0 ? (
-              <div className="py-12 text-center border-2 border-dashed border-slate-50 rounded-[2rem]">
-                <p className="text-[10px] font-black text-slate-300 uppercase">No session for {activeDay}</p>
-                <button onClick={() => setIsModalOpen(true)} className="mt-2 text-blue-600 font-black uppercase text-[9px]">+ Plan Now</button>
-              </div>
-            ) : (
-              currentDayData.timeSlots.map((slot, idx) => (
-                <div key={idx} className="flex items-center gap-6 bg-slate-50 p-6 rounded-[2rem] hover:bg-white hover:shadow-lg transition-all border border-transparent hover:border-slate-100">
-                  <div className="text-center min-w-[70px]">
-                    <p className="text-[10px] font-black text-slate-900">{slot.startTime}</p>
-                    <p className="text-[8px] font-bold text-slate-400 uppercase">to {slot.endTime}</p>
-                  </div>
-                  <div className="flex-grow">
-                    <h4 className="font-black text-slate-900 uppercase italic text-sm">{slot.subject}</h4>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase">{slot.task}</p>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-          <button 
-            onClick={() => setIsModalOpen(true)}
-            className="w-full mt-8 flex items-center justify-center gap-3 bg-slate-900 text-white py-5 rounded-2xl font-black uppercase text-[10px] hover:bg-blue-600 transition-all group"
-          >
-            Add Study Session <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform"/>
-          </button>
-        </div>
-
-        {/* 📚 LEARNING HISTORY */}
+        
+          {/* 📚 LEARNING HISTORY */}
         <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100">
           <div className="flex items-center gap-3 mb-8">
             <BookOpen className="text-blue-600" size={20} />
@@ -269,6 +218,59 @@ export default function Dashboard() {
             </div>
           )}
         </div>
+
+        {/* 📅 UNIQUE WEEKLY TIMETABLE */}
+        <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100 mb-10">
+          <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+            <div className="flex items-center gap-3">
+              <Calendar className="text-blue-600" size={20} />
+              <h2 className="font-black uppercase text-xs tracking-widest text-slate-400">My Study Schedule</h2>
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+              {daysOfWeek.map(day => (
+                <button
+                  key={day}
+                  onClick={() => setActiveDay(day)}
+                  className={`px-4 py-2 rounded-xl font-black text-[9px] uppercase transition-all ${
+                    activeDay === day ? "bg-slate-900 text-white" : "bg-slate-50 text-slate-400"
+                  }`}
+                >
+                  {day.substring(0, 3)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {!currentDayData || currentDayData.timeSlots.length === 0 ? (
+              <div className="py-12 text-center border-2 border-dashed border-slate-50 rounded-[2rem]">
+                <p className="text-[10px] font-black text-slate-300 uppercase">No session for {activeDay}</p>
+                <button onClick={() => setIsModalOpen(true)} className="mt-2 text-blue-600 font-black uppercase text-[9px]">+ Plan Now</button>
+              </div>
+            ) : (
+              currentDayData.timeSlots.map((slot, idx) => (
+                <div key={idx} className="flex items-center gap-6 bg-slate-50 p-6 rounded-[2rem] hover:bg-white hover:shadow-lg transition-all border border-transparent hover:border-slate-100">
+                  <div className="text-center min-w-[70px]">
+                    <p className="text-[10px] font-black text-slate-900">{slot.startTime}</p>
+                    <p className="text-[8px] font-bold text-slate-400 uppercase">to {slot.endTime}</p>
+                  </div>
+                  <div className="flex-grow">
+                    <h4 className="font-black text-slate-900 uppercase italic text-sm">{slot.subject}</h4>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase">{slot.task}</p>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="w-full mt-8 flex items-center justify-center gap-3 bg-slate-900 text-white py-5 rounded-2xl font-black uppercase text-[10px] hover:bg-blue-600 transition-all group"
+          >
+            Add Study Session <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform"/>
+          </button>
+        </div>
+
+      
       </div>
 
       <AddTaskModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} onSave={handleSaveTimetable} />
