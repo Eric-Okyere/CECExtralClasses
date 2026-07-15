@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { 
   ChevronLeft, Video, BookOpen, 
   CheckCircle2, Loader2, Info, Edit3, PlayCircle, List,
-  Layers, Award, HelpCircle
+  Layers, Award, HelpCircle, AlertCircle, Hash
 } from "lucide-react";
 import { API_BASE_URL } from "../../services/BaseUrl";
 
@@ -106,47 +106,57 @@ export default function LessonDetails() {
             </div>
 
             {/* CURRICULUM DETAILS */}
-          <div className="bg-white md:p-16 p-8 rounded-[2.5rem] md:rounded-[4rem] border border-slate-100 shadow-sm relative overflow-hidden">
-  {/* BACKGROUND DECOR - Adjusted size and position for mobile */}
-  <div className="absolute -top-10 -right-10 md:-top-20 md:-right-20 opacity-[0.02] rotate-12 pointer-events-none">
-    <BookOpen size={window.innerWidth < 768 ? 200 : 400} />
-  </div>
-  
-  {/* Badges - Flex wrap handles small screens naturally */}
-  <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-6 md:mb-10">
-    <span className="px-4 py-2 md:px-5 md:py-2.5 bg-blue-50 text-blue-600 text-[8px] md:text-[9px] font-black uppercase rounded-full border border-blue-100 tracking-widest">
-      {lesson.level}
-    </span>
-    <span className="px-4 py-2 md:px-5 md:py-2.5 bg-slate-50 text-slate-400 text-[8px] md:text-[9px] font-black uppercase rounded-full border border-slate-100 tracking-widest">
-      {lesson.subject}
-    </span>
-  </div>
+            <div className="bg-white md:p-16 p-8 rounded-[2.5rem] md:rounded-[4rem] border border-slate-100 shadow-sm relative overflow-hidden">
+              {/* BACKGROUND DECOR */}
+              <div className="absolute -top-10 -right-10 md:-top-20 md:-right-20 opacity-[0.02] rotate-12 pointer-events-none">
+                <BookOpen size={window.innerWidth < 768 ? 200 : 400} />
+              </div>
+              
+              {/* Badges */}
+              <div className="flex flex-wrap items-center gap-2 md:gap-3 mb-6 md:mb-10">
+                {lesson.lessonNumber && (
+                  <span className="px-4 py-2 md:px-5 md:py-2.5 bg-slate-900 text-white text-[8px] md:text-[9px] font-black uppercase rounded-full border border-slate-800 tracking-widest flex items-center gap-1 shadow-sm">
+                    <Hash size={12} /> Lesson {lesson.lessonNumber}
+                  </span>
+                )}
+                <span className="px-4 py-2 md:px-5 md:py-2.5 bg-blue-50 text-blue-600 text-[8px] md:text-[9px] font-black uppercase rounded-full border border-blue-100 tracking-widest">
+                  {lesson.level}
+                </span>
+                <span className="px-4 py-2 md:px-5 md:py-2.5 bg-slate-50 text-slate-500 text-[8px] md:text-[9px] font-black uppercase rounded-full border border-slate-100 tracking-widest">
+                  {lesson.subject}
+                </span>
+              </div>
 
-  {/* Main Title - Responsive font sizes: 3xl on mobile, 6xl on desktop */}
-  <h1 className="text-3xl md:text-6xl font-black text-slate-900 uppercase italic leading-[1.1] mb-4 md:mb-6 tracking-tighter">
-    {lesson.strand}
-  </h1>
+              {/* Main Title: Lesson Name */}
+              <h1 className="text-3xl md:text-6xl font-black text-slate-900 uppercase italic leading-[1.1] mb-2 md:mb-3 tracking-tighter">
+                {lesson.lessonName || "Untitled Lesson"}
+              </h1>
 
-  {/* Sub-strand - Adjusted text size and spacing */}
-  <p className="text-blue-500 font-black text-xs md:text-lg uppercase tracking-[0.15em] md:tracking-[0.2em] mb-8 md:mb-12 flex items-center gap-3 md:gap-4">
-    <Layers size={window.innerWidth < 768 ? 16 : 20} className="shrink-0" />
-    {lesson.subStrand}
-  </p>
-  
-  {/* Stats Grid - 1 col on mobile, 2 on tablet, 4 on desktop */}
-  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12 pt-8 md:pt-12 border-t border-slate-50">
-    <Stat 
-      icon={<PlayCircle className="text-blue-500"/>} 
-      label="Video Modules" 
-      value={lesson.videos?.length || 0} 
-    />
-    <Stat 
-      icon={<HelpCircle className="text-emerald-500"/>} 
-      label="Quiz Items" 
-      value={lesson.quiz?.length || 0} 
-    />
-  </div>
-</div>
+              {/* Strand Name */}
+              <p className="text-slate-400 font-black text-[10px] md:text-xs uppercase tracking-[0.25em] mb-4 md:mb-6">
+                Strand: <span className="text-slate-700">{lesson.strand}</span>
+              </p>
+
+              {/* Sub-strand */}
+              <p className="text-blue-500 font-black text-xs md:text-lg uppercase tracking-[0.15em] md:tracking-[0.2em] mb-8 md:mb-12 flex items-center gap-3 md:gap-4">
+                <Layers size={window.innerWidth < 768 ? 16 : 20} className="shrink-0" />
+                {lesson.subStrand}
+              </p>
+              
+              {/* Stats Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12 pt-8 md:pt-12 border-t border-slate-50">
+                <Stat 
+                  icon={<PlayCircle className="text-blue-500"/>} 
+                  label="Video Modules" 
+                  value={lesson.videos?.length || 0} 
+                />
+                <Stat 
+                  icon={<HelpCircle className="text-emerald-500"/>} 
+                  label="Quiz Items" 
+                  value={lesson.quiz?.length || 0} 
+                />
+              </div>
+            </div>
           </div>
 
           {/* SIDE COLUMN (Playlist & Quiz) */}

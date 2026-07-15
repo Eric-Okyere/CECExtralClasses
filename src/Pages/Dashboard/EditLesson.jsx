@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   Plus, Trash2, BookOpen, Layers, Save, 
-  ArrowLeft, Loader2, Film, Type, CheckCircle2, Info, X, Play 
+  ArrowLeft, Loader2, Film, Type, CheckCircle2, Info, X, Play, Hash 
 } from "lucide-react";
 import { API_BASE_URL } from "../../services/BaseUrl";
 
@@ -25,6 +25,8 @@ export default function EditLesson() {
 
   // Form State
   const [form, setForm] = useState({
+    lessonName: "",
+    lessonNumber: "",
     subject: "",
     strand: "",
     subStrand: "",
@@ -53,10 +55,12 @@ export default function EditLesson() {
         if (result.success && result.data) {
           const lesson = result.data;
           setForm({
-            subject: lesson.subject,
-            level: lesson.level,
-            strand: lesson.strand,
-            subStrand: lesson.subStrand,
+            lessonName: lesson.lessonName || "",
+            lessonNumber: lesson.lessonNumber || "",
+            subject: lesson.subject || "",
+            level: lesson.level || "",
+            strand: lesson.strand || "",
+            subStrand: lesson.subStrand || "",
             existingVideos: lesson.videos || [],
             newVideos: [],
             quiz: lesson.quiz || [],
@@ -166,6 +170,8 @@ export default function EditLesson() {
     setUpdating(true);
     
     const formData = new FormData();
+    formData.append("lessonName", form.lessonName);
+    formData.append("lessonNumber", form.lessonNumber);
     formData.append("subject", form.subject);
     formData.append("level", form.level);
     formData.append("strand", form.strand);
@@ -208,7 +214,7 @@ export default function EditLesson() {
             <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-400 hover:text-blue-600 font-black text-[10px] uppercase tracking-widest transition-all mb-2">
               <ArrowLeft size={14} /> Back to Repository
             </button>
-            <h1 className="text-3xl font-black text-slate-800 uppercase italic">Edit Curriculum Asset</h1>
+            <h1 className="text-3xl font-black text-slate-800 uppercase italic">Edit Lesson</h1>
           </div>
           <button form="edit-form" type="submit" disabled={updating} className="w-full md:w-auto px-10 py-4 bg-blue-600 text-white rounded-[2rem] font-black uppercase tracking-[0.15em] shadow-2xl shadow-blue-200 flex items-center justify-center gap-3 hover:bg-blue-700 transition-all active:scale-95 disabled:opacity-50">
             {updating ? <Loader2 className="animate-spin" size={18}/> : <Save size={18}/>}
@@ -225,22 +231,68 @@ export default function EditLesson() {
                 <BookOpen size={16}/> Taxonomy Details
               </h2>
               <div className="space-y-4">
-                <select required value={form.level} onChange={(e) => setForm({...form, level: e.target.value})} className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-black uppercase outline-none focus:ring-2 focus:ring-blue-500">
-                  <option value="">Select Level</option>
-                  {levels.map(l => <option key={l} value={l}>{l}</option>)}
-                </select>
-                <select required value={form.subject} onChange={handleSubjectChange} className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-black uppercase outline-none focus:ring-2 focus:ring-blue-500">
-                  <option value="">Select Subject</option>
-                  {subjects.map(s => <option key={s._id} value={s.name}>{s.name}</option>)}
-                </select>
-                <select required value={form.strand} onChange={handleStrandChange} className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-black uppercase outline-none focus:ring-2 focus:ring-blue-500">
-                  <option value="">Select Strand</option>
-                  {strands.map(s => <option key={s.title} value={s.title}>{s.title}</option>)}
-                </select>
-                <select required value={form.subStrand} onChange={(e) => setForm({...form, subStrand: e.target.value})} className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-black uppercase outline-none focus:ring-2 focus:ring-blue-500">
-                  <option value="">Select Sub-strand</option>
-                  {subStrands.map((ss, i) => <option key={i} value={ss}>{ss}</option>)}
-                </select>
+                {/* Lesson Name */}
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase tracking-wider text-slate-400 pl-1">Lesson Name</label>
+                  <input 
+                    type="text" 
+                    required 
+                    placeholder="E.g., Intro to Algebra" 
+                    value={form.lessonName} 
+                    onChange={(e) => setForm({...form, lessonName: e.target.value})} 
+                    className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-bold outline-none focus:ring-2 focus:ring-blue-500 text-slate-800"
+                  />
+                </div>
+
+                {/* Lesson Number */}
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase tracking-wider text-slate-400 pl-1">Lesson Number</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                      <Hash size={14} />
+                    </span>
+                    <input 
+                      type="number" 
+                      required 
+                      placeholder="E.g., 5" 
+                      value={form.lessonNumber} 
+                      onChange={(e) => setForm({...form, lessonNumber: e.target.value})} 
+                      className="w-full pl-10 pr-4 p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-bold outline-none focus:ring-2 focus:ring-blue-500 text-slate-800"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase tracking-wider text-slate-400 pl-1">Academic Level</label>
+                  <select required value={form.level} onChange={(e) => setForm({...form, level: e.target.value})} className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-black uppercase outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Select Level</option>
+                    {levels.map(l => <option key={l} value={l}>{l}</option>)}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase tracking-wider text-slate-400 pl-1">Subject</label>
+                  <select required value={form.subject} onChange={handleSubjectChange} className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-black uppercase outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Select Subject</option>
+                    {subjects.map(s => <option key={s._id} value={s.name}>{s.name}</option>)}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase tracking-wider text-slate-400 pl-1">Strand</label>
+                  <select required value={form.strand} onChange={handleStrandChange} className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-black uppercase outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Select Strand</option>
+                    {strands.map(s => <option key={s.title} value={s.title}>{s.title}</option>)}
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase tracking-wider text-slate-400 pl-1">Sub-Strand</label>
+                  <select required value={form.subStrand} onChange={(e) => setForm({...form, subStrand: e.target.value})} className="w-full p-4 bg-slate-50 border-none rounded-2xl text-[11px] font-black uppercase outline-none focus:ring-2 focus:ring-blue-500">
+                    <option value="">Select Sub-strand</option>
+                    {subStrands.map((ss, i) => <option key={i} value={ss}>{ss}</option>)}
+                  </select>
+                </div>
               </div>
             </section>
 

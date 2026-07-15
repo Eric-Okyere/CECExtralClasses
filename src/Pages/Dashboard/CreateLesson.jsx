@@ -12,6 +12,8 @@ export default function CreateLesson() {
   const [loading, setLoading] = useState(false);
 
   const [form, setForm] = useState({
+    lessonNumber: "",
+    lessonName: "",
     subjectId: "",
     subjectName: "",
     strand: "",
@@ -106,6 +108,8 @@ export default function CreateLesson() {
     
     setLoading(true);
     const formData = new FormData();
+    formData.append("lessonNumber", form.lessonNumber);
+    formData.append("lessonName", form.lessonName);
     formData.append("subject", form.subjectName);
     formData.append("level", form.level);
     formData.append("strand", form.strand);
@@ -143,9 +147,40 @@ export default function CreateLesson() {
         <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
           <div className="lg:col-span-4 space-y-6">
-            {/* Taxonomy */}
+            {/* Categorization & Metadata */}
             <section className="bg-white p-6 rounded-3xl border shadow-sm space-y-4">
-              <h2 className="text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-2"><BookOpen size={16}/> Categorization</h2>
+              <h2 className="text-[10px] font-black text-blue-600 uppercase tracking-widest flex items-center gap-2">
+                <BookOpen size={16}/> Categorization
+              </h2>
+
+              {/* Lesson Number and Lesson Name Fields */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="col-span-1">
+                  <label className="block text-[9px] font-black uppercase text-slate-400 mb-1">Lesson No.</label>
+                  <input 
+                    required 
+                    type="number" 
+                    placeholder="e.g., 1" 
+                    value={form.lessonNumber}
+                    onChange={(e) => setForm({...form, lessonNumber: e.target.value})}
+                    className="w-full p-3 bg-slate-50 border-none rounded-xl text-xs font-bold focus:ring-2 ring-blue-500 outline-none" 
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="block text-[9px] font-black uppercase text-slate-400 mb-1">Lesson Name / Title</label>
+                  <input 
+                    required 
+                    type="text" 
+                    placeholder="e.g., Intro to Algebra" 
+                    value={form.lessonName}
+                    onChange={(e) => setForm({...form, lessonName: e.target.value})}
+                    className="w-full p-3 bg-slate-50 border-none rounded-xl text-xs font-bold focus:ring-2 ring-blue-500 outline-none" 
+                  />
+                </div>
+              </div>
+
+              <hr className="border-slate-100 my-2" />
+
               <select required value={form.level} onChange={(e) => setForm({...form, level: e.target.value})} className="w-full p-3 bg-slate-50 border-none rounded-xl text-xs font-bold uppercase focus:ring-2 ring-blue-500">
                 <option value="">Select Level</option>
                 {levels.map(l => <option key={l} value={l}>{l}</option>)}
