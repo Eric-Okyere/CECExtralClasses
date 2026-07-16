@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { 
   Video, Plus, Trash2, BookOpen, Layers, 
   Save, X, Type, Loader2, Play 
@@ -11,6 +11,9 @@ export default function CreateLesson() {
   const [subStrands, setSubStrands] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  // Reference for the questions scroll container
+  const scrollContainerRef = useRef(null);
+
   const [form, setForm] = useState({
     lessonNumber: "",
     lessonName: "",
@@ -19,7 +22,7 @@ export default function CreateLesson() {
     strand: "",
     subStrand: "",
     level: "",
-    videos: [], // Changed from null to array
+    videos: [], 
     quiz: [],
   });
 
@@ -28,7 +31,7 @@ export default function CreateLesson() {
   useEffect(() => {
     fetch(`${API_BASE_URL}subjects`)
       .then((res) => res.json())
-      .then((data) => setSubjects(data.data || data)) // Handle nested data if necessary
+      .then((data) => setSubjects(data.data || data)) 
       .catch(console.error);
   }, []);
 
@@ -78,10 +81,14 @@ export default function CreateLesson() {
 
   // --- QUIZ HANDLERS ---
   const addQuestion = () => {
-    setForm({
-      ...form,
-      quiz: [...form.quiz, { question: "", options: ["", "", "", ""], answer: "", explanation: "" }],
-    });
+    setForm((prev) => ({
+      ...prev,
+      quiz: [{ question: "", options: ["", "", "", ""], answer: "", explanation: "" }, ...prev.quiz],
+    }));
+
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
+    }
   };
 
   const updateQuestion = (index, field, value) => {
@@ -96,8 +103,11 @@ export default function CreateLesson() {
     setForm({ ...form, quiz: updated });
   };
 
+  // --- UPDATED REMOVE QUESTION HANDLER WITH CONFIRMATION ---
   const removeQuestion = (index) => {
-    setForm({ ...form, quiz: form.quiz.filter((_, i) => i !== index) });
+    if (window.confirm("Are you sure you want to delete this question?")) {
+      setForm({ ...form, quiz: form.quiz.filter((_, i) => i !== index) });
+    }
   };
 
   // --- SUBMIT ---
@@ -115,7 +125,6 @@ export default function CreateLesson() {
     formData.append("strand", form.strand);
     formData.append("subStrand", form.subStrand);
     
-    // Send files and titles separately for the backend to map them
     form.videos.forEach(v => formData.append("videos", v.file));
     formData.append("titles", JSON.stringify(form.videos.map(v => v.title)));
     formData.append("quiz", JSON.stringify(form.quiz));
@@ -153,7 +162,6 @@ export default function CreateLesson() {
                 <BookOpen size={16}/> Categorization
               </h2>
 
-              {/* Lesson Number and Lesson Name Fields */}
               <div className="grid grid-cols-3 gap-3">
                 <div className="col-span-1">
                   <label className="block text-[9px] font-black uppercase text-slate-400 mb-1">Lesson No.</label>
@@ -242,15 +250,27 @@ export default function CreateLesson() {
 
           <div className="lg:col-span-8 space-y-4">
              <div className="flex justify-between items-center bg-white p-6 rounded-3xl border shadow-sm">
-               <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2"><Layers size={20} className="text-blue-600"/> Assessment Builder</h2>
+               <div className="flex items-center gap-3">
+                 <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                   <Layers size={20} className="text-blue-600"/> Assessment Builder
+                 </h2>
+                 {/* Live total count indicator */}
+                 <span className="bg-slate-100 text-slate-700 text-[10px] font-black px-2.5 py-1 rounded-full border">
+                   {form.quiz.length} {form.quiz.length === 1 ? "Question" : "Questions"}
+                 </span>
+               </div>
                <button type="button" onClick={addQuestion} className="bg-emerald-500 text-white px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition shadow-lg shadow-emerald-100 flex items-center gap-2">
                  <Plus size={14}/> Add Question
                </button>
              </div>
 
-             <div className="space-y-4 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar pb-10">
+             <div ref={scrollContainerRef} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar pb-10">
                 {form.quiz.map((q, index) => (
                   <div key={index} className="bg-white p-8 rounded-[2.5rem] border shadow-sm relative group hover:border-blue-200 transition-all">
+                    {/* Position Label context (Since elements are added to the top, it reads naturally) */}
+                    <div className="text-[9px] font-black uppercase tracking-wider text-blue-500 mb-2">
+                      Question {form.quiz.length - index} of {form.quiz.length}
+                    </div>
                     <button type="button" onClick={() => removeQuestion(index)} className="absolute top-6 right-6 text-slate-200 hover:text-red-500 transition">
                       <Trash2 size={20}/>
                     </button>
