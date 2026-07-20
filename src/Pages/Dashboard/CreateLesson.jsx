@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom"; // 1. Import useNavigate
 import { 
   Video, Plus, Trash2, BookOpen, Layers, 
   Save, X, Type, Loader2, Play 
@@ -6,6 +7,7 @@ import {
 import { API_BASE_URL } from "../../services/BaseUrl";
 
 export default function CreateLesson() {
+  const navigate = useNavigate(); // 2. Initialize navigate
   const [subjects, setSubjects] = useState([]);
   const [strands, setStrands] = useState([]);
   const [subStrands, setSubStrands] = useState([]);
@@ -103,7 +105,7 @@ export default function CreateLesson() {
     setForm({ ...form, quiz: updated });
   };
 
-  // --- UPDATED REMOVE QUESTION HANDLER WITH CONFIRMATION ---
+  // --- REMOVE QUESTION HANDLER WITH CONFIRMATION ---
   const removeQuestion = (index) => {
     if (window.confirm("Are you sure you want to delete this question?")) {
       setForm({ ...form, quiz: form.quiz.filter((_, i) => i !== index) });
@@ -136,7 +138,7 @@ export default function CreateLesson() {
       });
       if (res.ok) {
         alert("Lesson published!");
-        window.location.reload();
+        navigate("/manage-lessons"); // 3. Navigate after successful submit
       }
     } catch (err) {
       alert("Error publishing lesson.");
@@ -254,7 +256,6 @@ export default function CreateLesson() {
                  <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
                    <Layers size={20} className="text-blue-600"/> Assessment Builder
                  </h2>
-                 {/* Live total count indicator */}
                  <span className="bg-slate-100 text-slate-700 text-[10px] font-black px-2.5 py-1 rounded-full border">
                    {form.quiz.length} {form.quiz.length === 1 ? "Question" : "Questions"}
                  </span>
@@ -267,7 +268,6 @@ export default function CreateLesson() {
              <div ref={scrollContainerRef} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar pb-10">
                 {form.quiz.map((q, index) => (
                   <div key={index} className="bg-white p-8 rounded-[2.5rem] border shadow-sm relative group hover:border-blue-200 transition-all">
-                    {/* Position Label context (Since elements are added to the top, it reads naturally) */}
                     <div className="text-[9px] font-black uppercase tracking-wider text-blue-500 mb-2">
                       Question {form.quiz.length - index} of {form.quiz.length}
                     </div>

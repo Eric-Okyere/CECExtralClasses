@@ -162,7 +162,15 @@ export default function EditLesson() {
     setForm({ ...form, quiz: updated });
   };
 
-  const removeQuestion = (index) => setForm(p => ({ ...p, quiz: p.quiz.filter((_, i) => i !== index) }));
+  // --- UPDATED REMOVE QUESTION HANDLER WITH CONFIRMATION ---
+  const removeQuestion = (index) => {
+    if (window.confirm("Are you sure you want to delete this question?")) {
+      setForm((prev) => ({
+        ...prev,
+        quiz: prev.quiz.filter((_, i) => i !== index),
+      }));
+    }
+  };
 
   // --- SUBMIT ---
   const handleSubmit = async (e) => {
