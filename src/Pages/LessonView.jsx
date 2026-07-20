@@ -273,9 +273,18 @@ export default function LessonView() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
           <div className="lg:col-span-7 space-y-6">
             <div className="bg-white p-3 rounded-[3rem] shadow-xl border border-white">
-              <div className="aspect-video bg-black rounded-[2.5rem] overflow-hidden">
+              <div className="aspect-video bg-black rounded-[2.5rem] overflow-hidden select-none">
                 {currentVideo?.url ? (
-                  <video controls key={currentVideo?.url} className="w-full h-full" onEnded={() => handleVideoEnded(currentVideo?._id)}>
+                  <video 
+                    controls 
+                    controlsList="nodownload no-remote-playback"
+                    disablePictureInPicture
+                    disableRemotePlayback
+                    onContextMenu={(e) => e.preventDefault()}
+                    key={currentVideo?.url} 
+                    className="w-full h-full" 
+                    onEnded={() => handleVideoEnded(currentVideo?._id)}
+                  >
                     <source src={currentVideo?.url} type="video/mp4" />
                   </video>
                 ) : (

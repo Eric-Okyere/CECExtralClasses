@@ -1,12 +1,35 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../../services/BaseUrl";
-import { Video, HelpCircle, Eye, Trash2, Layers, BookOpen, Hash } from "lucide-react";
+import { 
+  Video, 
+  HelpCircle, 
+  Eye, 
+  Trash2, 
+  Layers, 
+  Hash, 
+  Search, 
+  Filter, 
+  ArrowUpDown, 
+  X,
+  BookOpen,
+  FolderTree
+} from "lucide-react";
 
 const ManageLessons = () => {
   const [lessons, setLessons] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+
+  // Filter & Search States
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedSubject, setSelectedSubject] = useState("ALL");
+  const [selectedStrand, setSelectedStrand] = useState("ALL");
+  const [selectedSubStrand, setSelectedSubStrand] = useState("ALL");
+  const [selectedLevel, setSelectedLevel] = useState("ALL");
+  const [sortBy, setSortBy] = useState("lessonNumber-asc");
+
+  const levels = ["JHS 1", "JHS 2", "JHS 3"];
 
   useEffect(() => {
     const fetchLessons = async () => {
@@ -23,7 +46,88 @@ const ManageLessons = () => {
     fetchLessons();
   }, []);
 
-  // Simple placeholder for delete functionality
+  // Extract unique subjects
+  const subjectsList = useMemo(() => {
+    const list = lessons.map((l) => l.subject).filter(Boolean);
+    return [...new Set(list)];
+  }, [lessons]);
+
+  // Extract unique strands dynamically (dependent on subject selection)
+  const strandsList = useMemo(() => {
+    const filtered = selectedSubject === "ALL" 
+      ? lessons 
+      : lessons.filter(l => l.subject === selectedSubject);
+    const list = filtered.map((l) => l.strand).filter(Boolean);
+    return [...new Set(list)];
+  }, [lessons, selectedSubject]);
+
+  // Extract unique sub-strands dynamically (dependent on subject & strand selection)
+  const subStrandsList = useMemo(() => {
+    const filtered = lessons.filter(l => {
+      const matchSubj = selectedSubject === "ALL" || l.subject === selectedSubject;
+      const matchStrand = selectedStrand === "ALL" || l.strand === selectedStrand;
+      return matchSubj && matchStrand;
+    });
+    const list = filtered.map((l) => l.subStrand).filter(Boolean);
+    return [...new Set(list)];
+  }, [lessons, selectedSubject, selectedStrand]);
+
+  // Filter & Sort Logic
+  const filteredAndSortedLessons = useMemo(() => {
+    return lessons
+      .filter((lesson) => {
+        const matchesSearch =
+          !searchTerm ||
+          (lesson.lessonName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (lesson.subject || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (lesson.strand || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (lesson.subStrand || "").toLowerCase().includes(searchTerm.toLowerCase());
+
+        const matchesSubject = selectedSubject === "ALL" || lesson.subject === selectedSubject;
+        const matchesStrand = selectedStrand === "ALL" || lesson.strand === selectedStrand;
+        const matchesSubStrand = selectedSubStrand === "ALL" || lesson.subStrand === selectedSubStrand;
+        const matchesLevel = selectedLevel === "ALL" || lesson.level === selectedLevel;
+
+        return matchesSearch && matchesSubject && matchesStrand && matchesSubStrand && matchesLevel;
+      })
+      .sort((a, b) => {
+        switch (sortBy) {
+          case "lessonNumber-asc":
+            return (Number(a.lessonNumber) || 0) - (Number(b.lessonNumber) || 0);
+          case "lessonNumber-desc":
+            return (Number(b.lessonNumber) || 0) - (Number(a.lessonNumber) || 0);
+          case "title-asc":
+            return (a.lessonName || "").localeCompare(b.lessonName || "");
+          case "title-desc":
+            return (b.lessonName || "").localeCompare(a.lessonName || "");
+          case "quiz-desc":
+            return (b.quiz?.length || 0) - (a.quiz?.length || 0);
+          case "quiz-asc":
+            return (a.quiz?.length || 0) - (b.quiz?.length || 0);
+          default:
+            return 0;
+        }
+      });
+  }, [lessons, searchTerm, selectedSubject, selectedStrand, selectedSubStrand, selectedLevel, sortBy]);
+
+  // Group lessons by Strand -> Sub-Strand
+  const groupedLessons = useMemo(() => {
+    const groups = {};
+    filteredAndSortedLessons.forEach((lesson) => {
+      const strandKey = lesson.strand || "Uncategorized Strand";
+      const subStrandKey = lesson.subStrand || "General Sub-Strand";
+
+      if (!groups[strandKey]) {
+        groups[strandKey] = {};
+      }
+      if (!groups[strandKey][subStrandKey]) {
+        groups[strandKey][subStrandKey] = [];
+      }
+      groups[strandKey][subStrandKey].push(lesson);
+    });
+    return groups;
+  }, [filteredAndSortedLessons]);
+
   const handleDelete = async (lessonId) => {
     if (!window.confirm("Are you sure you want to delete this lesson?")) return;
     try {
@@ -42,6 +146,15 @@ const ManageLessons = () => {
     }
   };
 
+  const clearFilters = () => {
+    setSearchTerm("");
+    setSelectedSubject("ALL");
+    setSelectedStrand("ALL");
+    setSelectedSubStrand("ALL");
+    setSelectedLevel("ALL");
+    setSortBy("lessonNumber-asc");
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -51,12 +164,12 @@ const ManageLessons = () => {
   }
 
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="p-6 bg-gray-50 min-h-screen font-sans">
       {/* Header Section */}
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Lesson Management</h1>
-          <p className="text-sm text-gray-500">Manage curriculum content and quizzes</p>
+          <p className="text-sm text-gray-500">Manage curriculum content organized by Strand & Sub-Strand</p>
         </div>
         <div className="flex gap-3">
           <button onClick={() => navigate("/all-subjects")} className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold px-4 py-2 rounded-lg transition duration-200">
@@ -84,75 +197,223 @@ const ManageLessons = () => {
         </div>
       </div>
 
-      {/* Lessons Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {lessons.map((lesson) => (
-          <div key={lesson._id} className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition duration-200 flex flex-col justify-between">
-            <div className="p-5">
-              <div className="flex justify-between items-center mb-4">
-                <div className="flex items-center gap-2">
-                  <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded uppercase">
-                    {lesson.level}
-                  </span>
-                  {lesson.lessonNumber && (
-                    <span className="bg-slate-900 text-white text-xs font-black px-2 py-0.5 rounded flex items-center gap-0.5">
-                      <Hash size={10} /> {lesson.lessonNumber}
-                    </span>
-                  )}
-                </div>
-                <span className="text-xs text-gray-400">ID: {lesson._id.slice(-6)}</span>
-              </div>
-              
-              {/* Lesson Name/Title & Subject Info */}
-              <h2 className="text-xl font-black text-gray-900 mb-1 leading-tight uppercase">
-                {lesson.lessonName || "Untitled Lesson"}
-              </h2>
-              <div className="flex items-center gap-1.5 text-xs text-gray-400 font-bold uppercase tracking-wider mb-2">
-                <span>{lesson.subject}</span>
-                <span>•</span>
-                <span className="text-blue-600">{lesson.strand}</span>
-              </div>
-              
-              <div className="bg-gray-50 rounded-lg p-3 mb-4">
-                <p className="text-[10px] text-gray-400 uppercase font-bold mb-1 italic flex items-center gap-1">
-                  <Layers size={12} /> Sub-Strand
-                </p>
-                <p className="text-sm text-gray-700 font-medium">{lesson.subStrand || "N/A"}</p>
-              </div>
-
-              <div className="flex items-center gap-4 text-sm text-gray-600">
-                <div className="flex items-center gap-1">
-                  <Video size={16} className="text-red-500" />
-                  <span className="font-semibold text-xs uppercase text-gray-500">
-                    {lesson.videos?.length || 0} {lesson.videos?.length === 1 ? "Video" : "Videos"}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <HelpCircle size={16} className="text-green-500" />
-                  <span className="font-semibold text-xs uppercase text-gray-500">
-                    {lesson.quiz?.length || 0} Questions
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-gray-50 px-5 py-3 border-t border-gray-100 flex justify-end gap-3">
-              <button 
-                onClick={() => navigate(`/lesson/${lesson._id}`)}  
-                className="text-gray-600 hover:text-blue-600 font-black uppercase text-xs tracking-wider px-3 py-1 flex items-center gap-1.5"
-              >
-                <Eye size={14} /> Preview
-              </button>
-              <button 
-                onClick={() => handleDelete(lesson._id)} 
-                className="text-red-500 hover:text-red-700 font-black uppercase text-xs tracking-wider px-3 py-1 flex items-center gap-1.5"
-              >
-                <Trash2 size={14} /> Delete
-              </button>
-            </div>
+      {/* Control Panel: Search, Filters & Sorting */}
+      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6 flex flex-col gap-4">
+        <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
+          {/* Search Bar */}
+          <div className="relative w-full md:w-1/3">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+            <input
+              type="text"
+              placeholder="Search lesson, strand, sub-strand..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
           </div>
-        ))}
+
+          {/* Reset Filters Button */}
+          {(searchTerm || selectedSubject !== "ALL" || selectedStrand !== "ALL" || selectedSubStrand !== "ALL" || selectedLevel !== "ALL" || sortBy !== "lessonNumber-asc") && (
+            <button
+              onClick={clearFilters}
+              className="flex items-center gap-1 text-xs text-red-600 font-bold uppercase hover:underline"
+            >
+              <X size={14} /> Clear Filters
+            </button>
+          )}
+        </div>
+
+        {/* Filter Dropdowns Grid */}
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pt-2 border-t border-gray-100">
+          {/* Subject Filter */}
+          <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-sm">
+            <Filter size={14} className="text-gray-500 shrink-0" />
+            <select
+              value={selectedSubject}
+              onChange={(e) => {
+                setSelectedSubject(e.target.value);
+                setSelectedStrand("ALL");
+                setSelectedSubStrand("ALL");
+              }}
+              className="bg-transparent focus:outline-none text-gray-700 font-medium text-xs uppercase cursor-pointer w-full"
+            >
+              <option value="ALL">All Subjects</option>
+              {subjectsList.map((subj) => (
+                <option key={subj} value={subj}>{subj}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Strand Filter */}
+          <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-sm">
+            <FolderTree size={14} className="text-gray-500 shrink-0" />
+            <select
+              value={selectedStrand}
+              onChange={(e) => {
+                setSelectedStrand(e.target.value);
+                setSelectedSubStrand("ALL");
+              }}
+              className="bg-transparent focus:outline-none text-gray-700 font-medium text-xs uppercase cursor-pointer w-full"
+            >
+              <option value="ALL">All Strands</option>
+              {strandsList.map((st) => (
+                <option key={st} value={st}>{st}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Sub-Strand Filter */}
+          <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-sm">
+            <Layers size={14} className="text-gray-500 shrink-0" />
+            <select
+              value={selectedSubStrand}
+              onChange={(e) => setSelectedSubStrand(e.target.value)}
+              className="bg-transparent focus:outline-none text-gray-700 font-medium text-xs uppercase cursor-pointer w-full"
+            >
+              <option value="ALL">All Sub-Strands</option>
+              {subStrandsList.map((sst) => (
+                <option key={sst} value={sst}>{sst}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Level Filter */}
+          <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-sm">
+            <select
+              value={selectedLevel}
+              onChange={(e) => setSelectedLevel(e.target.value)}
+              className="bg-transparent focus:outline-none text-gray-700 font-medium text-xs uppercase cursor-pointer w-full"
+            >
+              <option value="ALL">All Levels</option>
+              {levels.map((lvl) => (
+                <option key={lvl} value={lvl}>{lvl}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Sort By */}
+          <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-sm">
+            <ArrowUpDown size={14} className="text-gray-500 shrink-0" />
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="bg-transparent focus:outline-none text-gray-700 font-medium text-xs cursor-pointer w-full"
+            >
+              <option value="lessonNumber-asc">Lesson # (Low to High)</option>
+              <option value="lessonNumber-desc">Lesson # (High to Low)</option>
+              <option value="title-asc">Title (A - Z)</option>
+              <option value="title-desc">Title (Z - A)</option>
+              <option value="quiz-desc">Questions (Most First)</option>
+              <option value="quiz-asc">Questions (Least First)</option>
+            </select>
+          </div>
+        </div>
       </div>
+
+      {/* Result Counter */}
+      <div className="mb-6 text-xs font-semibold uppercase text-gray-500 tracking-wider">
+        Showing {filteredAndSortedLessons.length} of {lessons.length} Lessons
+      </div>
+
+      {/* Grouped Lessons Output */}
+      {filteredAndSortedLessons.length === 0 ? (
+        <div className="bg-white rounded-xl p-12 text-center border border-gray-200">
+          <BookOpen size={48} className="mx-auto text-gray-300 mb-3" />
+          <h3 className="text-lg font-bold text-gray-700">No lessons found</h3>
+          <p className="text-sm text-gray-500 mb-4">Try adjusting your search terms or filters.</p>
+          <button onClick={clearFilters} className="text-blue-600 hover:underline font-semibold text-sm">
+            Clear all filters
+          </button>
+        </div>
+      ) : (
+        <div className="space-y-10">
+          {Object.keys(groupedLessons).map((strandName) => (
+            <div key={strandName} className="space-y-6">
+              {/* STRAND HEADER */}
+              <div className="flex items-center gap-2 border-b-2 border-blue-600 pb-2">
+                <FolderTree className="text-blue-600" size={20} />
+                <h2 className="text-lg font-black text-gray-900 uppercase tracking-wide">
+                  Strand: {strandName}
+                </h2>
+              </div>
+
+              {/* SUB-STRANDS & LESSON CARDS */}
+              {Object.keys(groupedLessons[strandName]).map((subStrandName) => (
+                <div key={subStrandName} className="pl-2 md:pl-4 space-y-4">
+                  <div className="flex items-center gap-2 text-slate-600 bg-slate-100 px-3 py-1.5 rounded-lg w-fit">
+                    <Layers size={14} className="text-slate-500" />
+                    <h3 className="text-xs font-black uppercase tracking-wider">
+                      Sub-Strand: {subStrandName}
+                    </h3>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {groupedLessons[strandName][subStrandName].map((lesson) => (
+                      <div
+                        key={lesson._id}
+                        className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden hover:shadow-md transition duration-200 flex flex-col justify-between"
+                      >
+                        <div className="p-5">
+                          <div className="flex justify-between items-center mb-4">
+                            <div className="flex items-center gap-2">
+                              <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded uppercase">
+                                {lesson.level}
+                              </span>
+                              {lesson.lessonNumber && (
+                                <span className="bg-slate-900 text-white text-xs font-black px-2 py-0.5 rounded flex items-center gap-0.5">
+                                  <Hash size={10} /> {lesson.lessonNumber}
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-xs text-gray-400">ID: {lesson._id.slice(-6)}</span>
+                          </div>
+
+                          <h2 className="text-xl font-black text-gray-900 mb-1 leading-tight uppercase">
+                            {lesson.lessonName || "Untitled Lesson"}
+                          </h2>
+                          <div className="flex items-center gap-1.5 text-xs text-gray-400 font-bold uppercase tracking-wider mb-4">
+                            <span>{lesson.subject}</span>
+                          </div>
+
+                          <div className="flex items-center gap-4 text-sm text-gray-600">
+                            <div className="flex items-center gap-1">
+                              <Video size={16} className="text-red-500" />
+                              <span className="font-semibold text-xs uppercase text-gray-500">
+                                {lesson.videos?.length || 0} {lesson.videos?.length === 1 ? "Video" : "Videos"}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <HelpCircle size={16} className="text-green-500" />
+                              <span className="font-semibold text-xs uppercase text-gray-500">
+                                {lesson.quiz?.length || 0} Questions
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="bg-gray-50 px-5 py-3 border-t border-gray-100 flex justify-end gap-3">
+                          <button
+                            onClick={() => navigate(`/lesson/${lesson._id}`)}
+                            className="text-gray-600 hover:text-blue-600 font-black uppercase text-xs tracking-wider px-3 py-1 flex items-center gap-1.5"
+                          >
+                            <Eye size={14} /> Preview
+                          </button>
+                          <button
+                            onClick={() => handleDelete(lesson._id)}
+                            className="text-red-500 hover:text-red-700 font-black uppercase text-xs tracking-wider px-3 py-1 flex items-center gap-1.5"
+                          >
+                            <Trash2 size={14} /> Delete
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
