@@ -19,6 +19,7 @@ const PhoneInputComponent = PhoneInput.default
 export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingMessage, setLoadingMessage] = useState("");
   const [agreed, setAgreed] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState(null);
@@ -41,6 +42,7 @@ export default function Login() {
 
   const handleGoogleSuccess = async (credentialResponse) => {
     setLoading(true);
+    setLoadingMessage("Authenticating with Google...");
     setError("");
 
     try {
@@ -63,21 +65,26 @@ export default function Login() {
         if (!checkProfileComplete(data.user)) {
           setLoggedInUser(data.user);
           setShowModal(true);
+          setLoading(false); // Stop loading to let user fill out profile setup modal
         } else {
+          setLoadingMessage("Login successful! Redirecting...");
+          // Keep loading as true so spinner remains active during navigation
           navigate("/");
         }
       } else {
         setError(data.msg || "Google authentication failed.");
+        setLoading(false);
       }
     } catch (error) {
       setError("Server connection error during Google login.");
-    } finally {
       setLoading(false);
     }
   };
 
   const handleUpdateProfile = async () => {
     setLoading(true);
+    setLoadingMessage("Saving profile details...");
+    setError("");
 
     try {
       const token = localStorage.getItem("token");
@@ -112,13 +119,15 @@ export default function Login() {
         const userToStore = data.user ? data.user : data;
         localStorage.setItem("user", JSON.stringify(userToStore));
         setShowModal(false);
+        setLoadingMessage("Profile updated! Redirecting...");
+        // Keep loading true while navigating
         navigate("/");
       } else {
         setError(data.msg || "Profile update failed.");
+        setLoading(false);
       }
     } catch (error) {
       setError("Something went wrong while updating profile.");
-    } finally {
       setLoading(false);
     }
   };
@@ -150,7 +159,17 @@ export default function Login() {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-[#F8FAFC] px-4 font-sans text-slate-900">
+    <div className="flex justify-center items-center min-h-screen bg-[#F8FAFC] px-4 font-sans text-slate-900 relative">
+      {/* Full-Screen Loading Overlay when loading */}
+      {loading && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex flex-col justify-center items-center z-[100] text-white">
+          <Loader2 className="w-12 h-12 animate-spin text-blue-500 mb-4" />
+          <p className="text-sm font-semibold tracking-wide">
+            {loadingMessage || "Please wait..."}
+          </p>
+        </div>
+      )}
+
       <div className="bg-white p-10 shadow-2xl rounded-[2.5rem] w-full max-w-md border border-slate-100">
         <div className="text-center mb-10">
           <img src={Logo} alt="CEC Logo" className="w-16 h-16 mx-auto mb-4" />
@@ -174,7 +193,7 @@ export default function Login() {
 
         <div className="pt-6 mt-6 border-t border-slate-50 grid grid-cols-2 gap-3">
           <a
-            href="https://wa.me/233209317581"
+            href="https://wa.me/233246748199"
             target="_blank"
             rel="noopener noreferrer"
             className="flex items-center justify-center gap-2 py-3 bg-[#25D366]/10 text-[#25D366] rounded-2xl text-xs font-bold"
@@ -184,7 +203,7 @@ export default function Login() {
           </a>
 
           <a
-            href="tel:+233209317581"
+            href="tel:+233246748199"
             className="flex items-center justify-center gap-2 py-3 bg-blue-50 text-blue-600 rounded-2xl text-xs font-bold"
           >
             <Phone size={16} />
@@ -328,10 +347,10 @@ export default function Login() {
               <button
                 onClick={handleUpdateProfile}
                 disabled={!isFormValid() || loading}
-                className="w-full bg-green-600 text-white py-4 rounded-xl font-bold disabled:bg-slate-300"
+                className="w-full bg-green-600 text-white py-4 rounded-xl font-bold disabled:bg-slate-300 flex justify-center items-center gap-2"
               >
                 {loading ? (
-                  <Loader2 className="animate-spin mx-auto" />
+                  <Loader2 className="animate-spin" />
                 ) : (
                   "Save & Continue"
                 )}

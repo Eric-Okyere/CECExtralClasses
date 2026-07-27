@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { NavLink, Link, useNavigate } from "react-router-dom";
 import { 
   HiMenu, HiX, HiChevronDown, HiUser, 
-  HiLogout, HiViewGrid, HiShieldCheck, HiArrowLeft 
+  HiLogout, HiViewGrid, HiShieldCheck, HiArrowLeft, HiSwitchHorizontal 
 } from "react-icons/hi"; 
 import { MdHome, MdSubject } from "react-icons/md";
 import { API_BASE_URL } from "../services/BaseUrl";
@@ -32,7 +32,6 @@ export default function Navbar() {
           setParentData(JSON.parse(storedParent));
         }
 
-        // Fetch children only if the active session is a parent
         if (currentUser.role === "parent") {
           fetchChildren(currentUser._id);
         }
@@ -59,10 +58,9 @@ export default function Navbar() {
   useEffect(() => {
     const hasAutoSwitched = sessionStorage.getItem("autoSwitched");
     
-    // If user is parent with exactly 1 child and hasn't auto-switched yet this session
     if (user?.role === "parent" && linkedChildren.length === 1 && !hasAutoSwitched) {
       sessionStorage.setItem("autoSwitched", "true");
-      handleSwitchToChild(linkedChildren[0], true); // true = isAuto (Silent)
+      handleSwitchToChild(linkedChildren[0], true);
     }
   }, [user, linkedChildren]);
 
@@ -81,27 +79,19 @@ export default function Navbar() {
 
   // --- 3. SWITCHING LOGIC ---
   const handleSwitchToChild = (child, isAuto = false) => {
-    // 1. Save parent session if we are moving from parent to child
     if (user.role === 'parent') {
       localStorage.setItem("parentSession", JSON.stringify(user));
       setParentData(user);
     }
     
-    // 2. Update Storage
     localStorage.setItem("user", JSON.stringify(child));
-    
-    // 3. Update State immediately for Navbar UI
     setUser(child);
     setDropdownOpen(false);
+    setMenuOpen(false);
 
-    // 4. Navigation Control
     if (!isAuto) {
-      // Manual switch: Go to dashboard and reload
       navigate(`/dashboard/${child._id}`);
       window.location.reload(); 
-    } else {
-      // Silent switch: Just log to console, stay on current page (e.g., Home)
-      console.log("Automatically switched to Learner profile silently.");
     }
   };
 
@@ -109,7 +99,6 @@ export default function Navbar() {
     const storedParentString = localStorage.getItem("parentSession");
     
     if (storedParentString) {
-      // Set flag so auto-switch doesn't trigger immediately again
       sessionStorage.setItem("autoSwitched", "true");
       
       localStorage.setItem("user", storedParentString);
@@ -126,7 +115,11 @@ export default function Navbar() {
     }
   };
 
+  // --- 4. LOGOUT WITH CONFIRMATION ---
   const handleLogout = () => {
+    const confirmed = window.confirm("Are you sure you want to log out?");
+    if (!confirmed) return;
+
     localStorage.removeItem("user");
     localStorage.removeItem("token");
     localStorage.removeItem("parentSession");
@@ -138,149 +131,259 @@ export default function Navbar() {
   };
 
   const activeStyle = ({ isActive }) => 
-    `transition duration-300 ${isActive ? "text-yellow-400 font-bold" : "hover:text-yellow-200"}`;
+    `px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wider transition-all duration-200 ${
+      isActive 
+        ? "text-yellow-400 bg-white/10 font-bold" 
+        : "text-slate-200 hover:text-white hover:bg-white/5"
+    }`;
 
   return (
-    <nav className="bg-blue-700 text-white shadow-xl sticky top-0 z-50 font-sans">
-      <div className="max-w-7xl mx-auto px-6 py-3 flex justify-between items-center">
+    <nav className="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 text-white sticky top-0 z-50 font-sans shadow-lg">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex justify-between items-center">
         
         {/* LOGO */}
-        <Link to="/" className="flex items-center gap-3">
-          <img src={Logo} alt="CEC Logo" className="w-10 h-10 rounded-lg object-cover" />
-          <div className="hidden sm:block leading-none">
-            <h1 className="font-black text-lg uppercase italic tracking-tighter">
-              CEC <span className="text-yellow-400">Classes</span>
+        <Link to="/" className="flex items-center gap-3 group" onClick={() => setMenuOpen(false)}>
+          <div className="relative p-0.5 rounded-xl bg-gradient-to-tr from-yellow-400 to-amber-500 shadow-sm group-hover:scale-105 transition-transform duration-200">
+            <img src={Logo} alt="CEC Logo" className="w-9 h-9 rounded-[10px] object-cover" />
+          </div>
+          <div className="leading-tight">
+            <h1 className="font-extrabold text-base tracking-tight text-white flex items-center gap-1.5">
+              CEC <span className="text-yellow-400 font-black">CLASSES</span>
             </h1>
           </div>
         </Link>
 
         {/* DESKTOP NAV */}
-        <div className="hidden md:flex items-center space-x-8 text-xs font-black uppercase tracking-widest">
-          <NavLink to="/" className={activeStyle}>Home</NavLink>
+        <div className="hidden md:flex items-center gap-6">
+          <div className="flex items-center space-x-1 border-r border-slate-800 pr-6">
+            <NavLink to="/" className={activeStyle}>HOME</NavLink>
+            {user && (
+              <NavLink to="/subjects" className={activeStyle}>LESSONS</NavLink>
+            )}
+          </div>
           
           {user ? (
-            <div className="flex items-center gap-6">
-              <NavLink to="/subjects" className={activeStyle}>Subjects</NavLink>
-              
+            <div className="flex items-center gap-4">
               <div className="relative" ref={dropdownRef}>
                 <button 
                   onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className={`flex items-center gap-2 pl-2 pr-4 py-1.5 rounded-2xl border transition-all ${
-                    user.role === 'child' ? 'bg-emerald-600/50 border-emerald-400' : 'bg-blue-800/50 border-white/10'
+                  className={`flex items-center gap-3 pl-2.5 pr-3.5 py-1.5 rounded-full border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-400/50 ${
+                    user.role === 'child' 
+                      ? 'bg-emerald-950/40 border-emerald-500/40 hover:bg-emerald-950/70' 
+                      : 'bg-slate-800/80 border-slate-700 hover:bg-slate-800'
                   }`}
                 >
-                  <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center text-blue-900 font-black shadow-inner">
+                  <div className="w-7 h-7 bg-gradient-to-tr from-yellow-400 to-amber-400 rounded-full flex items-center justify-center text-slate-900 font-extrabold text-xs shadow-md">
                     {user.name?.charAt(0)}
                   </div>
                   <div className="text-left">
-                    <p className="text-[10px] font-black opacity-60 leading-none mb-0.5 uppercase tracking-tighter">{user.role}</p>
-                    <p className="normal-case font-bold tracking-normal leading-none">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-0.5">
+                      {user.role}
+                    </p>
+                    <p className="text-xs font-semibold leading-none truncate max-w-[100px]">
                       {user.name?.split(' ')[0]}
                     </p>
                   </div>
-                  <HiChevronDown className={`transition-transform ${dropdownOpen ? "rotate-180" : ""}`} />
+                  <HiChevronDown className={`text-slate-400 text-sm transition-transform duration-200 ${dropdownOpen ? "rotate-180 text-yellow-400" : ""}`} />
                 </button>
 
-                {/* DROPDOWN */}
+                {/* DESKTOP DROPDOWN MENU */}
                 {dropdownOpen && (
-                  <div className="absolute right-0 mt-3 w-64 bg-white rounded-[2rem] shadow-2xl py-4 text-slate-800 border border-slate-100 animate-in fade-in zoom-in duration-200 overflow-hidden">
+                  <div className="absolute right-0 mt-3 w-72 bg-slate-900 text-slate-100 rounded-2xl shadow-2xl py-2 border border-slate-800 animate-in fade-in zoom-in-95 duration-150 overflow-hidden z-50">
                     
+                    {/* Return to Parent Option */}
                     {user.role === 'child' && parentData && (
-                      <div className="px-3 pb-3 border-b border-slate-50 mb-2">
+                      <div className="px-2 pt-1 pb-2">
                         <button 
                           onClick={handleBackToParent}
-                          className="w-full bg-blue-50 text-blue-700 p-3 rounded-2xl flex items-center gap-3 font-black text-[10px] uppercase tracking-widest hover:bg-blue-100 transition-all"
+                          className="w-full bg-blue-600/10 border border-blue-500/20 text-blue-400 hover:bg-blue-600/20 px-3 py-2.5 rounded-xl flex items-center justify-center gap-2 font-bold text-xs transition-all"
                         >
-                          <HiArrowLeft /> Back to Parent Session
+                          <HiArrowLeft className="text-sm" /> Switch to Parent Session
                         </button>
                       </div>
                     )}
 
-                    <div className="px-6 py-2">
-                      <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Logged in as</p>
-                      <p className="text-xs font-black text-blue-700 truncate">{user.name}</p>
+                    {/* Account Header */}
+                    <div className="px-4 py-3 bg-slate-800/40 border-y border-slate-800/60 mb-1">
+                      <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Signed in as</p>
+                      <p className="text-xs font-bold text-white truncate mt-0.5">{user.name}</p>
                     </div>
 
+                    {/* Parent Quick Switcher */}
                     {user.role === "parent" && linkedChildren.length > 0 && (
-                      <div className="px-4 py-2 mt-2 bg-slate-50/50">
-                        <p className="text-[9px] font-black text-slate-400 uppercase px-2 mb-2 tracking-widest">Quick Switch</p>
+                      <div className="px-3 py-2 my-1">
+                        <p className="text-[10px] font-extrabold text-slate-400 uppercase px-2 mb-1.5 tracking-wider flex items-center gap-1.5">
+                          <HiSwitchHorizontal className="text-yellow-400" /> Switch Learner
+                        </p>
                         <div className="space-y-1">
                           {linkedChildren.map((child) => (
                             <button
                               key={child._id}
                               onClick={() => handleSwitchToChild(child, false)}
-                              className="w-full flex items-center gap-3 px-3 py-2 hover:bg-white hover:shadow-sm rounded-xl transition-all text-left group"
+                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 hover:bg-slate-800 rounded-xl transition-colors text-left group"
                             >
-                              <div className="w-7 h-7 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center text-[11px] font-black group-hover:bg-emerald-600 group-hover:text-white transition-colors">
+                              <div className="w-6 h-6 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg flex items-center justify-center text-xs font-bold group-hover:bg-emerald-500 group-hover:text-slate-900 transition-colors">
                                 {child.name.charAt(0)}
                               </div>
-                              <span className="text-xs font-bold text-slate-600">{child.name}</span>
+                              <span className="text-xs font-semibold text-slate-300 group-hover:text-white truncate">{child.name}</span>
                             </button>
                           ))}
                         </div>
                       </div>
                     )}
 
-                    <div className="h-[1px] bg-slate-100 my-2" />
-
-                    <div className="space-y-0.5">
-                      <Link to={`/dashboard/${user._id}`} onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-6 py-2.5 hover:bg-slate-50 text-xs font-bold transition-colors">
-                        <HiViewGrid size={18} className="text-blue-600" /> Dashboard
+                    {/* Navigation Menu Links */}
+                    <div className="py-1">
+                      <Link 
+                        to={`/dashboard/${user._id}`} 
+                        onClick={() => setDropdownOpen(false)} 
+                        className="flex items-center gap-3 px-4 py-2 hover:bg-slate-800 text-xs font-medium text-slate-300 hover:text-white transition-colors"
+                      >
+                        <HiViewGrid className="text-base text-yellow-400" /> Dashboard
                       </Link>
 
-                      <Link to={`/profile/${user._id}`} onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-6 py-2.5 hover:bg-slate-50 text-xs font-bold transition-colors">
-                        <HiUser size={18} className="text-blue-600" /> My Profile
+                      <Link 
+                        to={`/profile/${user._id}`} 
+                        onClick={() => setDropdownOpen(false)} 
+                        className="flex items-center gap-3 px-4 py-2 hover:bg-slate-800 text-xs font-medium text-slate-300 hover:text-white transition-colors"
+                      >
+                        <HiUser className="text-base text-yellow-400" /> My Profile
                       </Link>
 
                       {user.admin && (
-                        <Link to="/admindashboard" onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-6 py-2.5 hover:bg-red-50 text-red-600 font-black text-xs transition-colors">
-                          <HiShieldCheck size={18} /> Admin Panel
+                        <Link 
+                          to="/admindashboard" 
+                          onClick={() => setDropdownOpen(false)} 
+                          className="flex items-center gap-3 px-4 py-2 hover:bg-red-500/10 text-xs font-bold text-red-400 hover:text-red-300 transition-colors"
+                        >
+                          <HiShieldCheck className="text-base" /> Admin Panel
                         </Link>
                       )}
                     </div>
 
-                    <button 
-                      onClick={handleLogout}
-                      className="w-full flex items-center gap-3 px-6 py-3 mt-2 text-red-500 hover:bg-red-50 font-black text-xs transition-colors border-t border-slate-100"
-                    >
-                      <HiLogout size={18} /> Logout
-                    </button>
+                    <div className="border-t border-slate-800 pt-1 mt-1">
+                      <button 
+                        onClick={handleLogout}
+                        className="w-full flex items-center gap-3 px-4 py-2.5 text-rose-400 hover:bg-rose-500/10 text-xs font-bold transition-colors"
+                      >
+                        <HiLogout className="text-base" /> Logout
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
             </div>
           ) : (
-            <div className="flex items-center gap-4">
-              <NavLink to="/login" className="hover:text-yellow-400 transition-colors">Login</NavLink>
-              <Link to="/register" className="bg-yellow-400 text-blue-900 px-6 py-2 rounded-xl font-black shadow-lg hover:scale-105 transition-all">
-                Join
+            <div className="flex items-center gap-3">
+              <NavLink to="/login" className="text-xs font-bold text-slate-300 hover:text-white px-3 py-1.5 transition-colors">
+                Login
+              </NavLink>
+              <Link 
+                to="/login" 
+                className="bg-yellow-400 text-slate-900 hover:bg-yellow-300 px-4 py-1.5 rounded-lg text-xs font-black shadow-md transition-all duration-200"
+              >
+                Join Now
               </Link>
             </div>
           )}
         </div>
 
-        {/* MOBILE TOGGLE */}
-        <button className="md:hidden text-3xl" onClick={() => setMenuOpen(!menuOpen)}>
-          {menuOpen ? <HiX /> : <HiMenu />}
+        {/* MOBILE TOGGLE BUTTON */}
+        <button 
+          className="md:hidden p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 focus:outline-none transition-colors" 
+          onClick={() => setMenuOpen(!menuOpen)}
+        >
+          {menuOpen ? <HiX className="text-2xl" /> : <HiMenu className="text-2xl" />}
         </button>
       </div>
 
-      {/* MOBILE MENU */}
-      <div className={`md:hidden overflow-hidden transition-all duration-300 bg-white ${menuOpen ? "max-h-screen border-t border-slate-100" : "max-h-0"}`}>
-        <div className="flex flex-col p-8 space-y-4">
+      {/* MOBILE DRAWER */}
+      <div className={`md:hidden transition-all duration-300 ease-in-out bg-slate-900 border-b border-slate-800 overflow-hidden ${menuOpen ? "max-h-[85vh] overflow-y-auto" : "max-h-0"}`}>
+        <div className="p-4 space-y-4">
           {user ? (
             <>
-              <NavLink to="/" onClick={() => setMenuOpen(false)} className="text-slate-800 font-black uppercase text-xs">Home</NavLink>
-              <NavLink to="/subjects" onClick={() => setMenuOpen(false)} className="text-slate-800 font-black uppercase text-xs">Subjects</NavLink>
-              <div className="h-[1px] bg-slate-100" />
-              <Link to={`/dashboard/${user._id}`} onClick={() => setMenuOpen(false)} className="text-blue-600 font-black uppercase text-xs">Dashboard</Link>
-              <button onClick={handleLogout} className="text-red-500 font-black uppercase text-xs text-left">Logout</button>
+              {/* Mobile Profile Card */}
+              <div className="flex items-center justify-between p-3 bg-slate-800/80 rounded-xl border border-slate-700/60">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-yellow-400 text-slate-900 rounded-full flex items-center justify-center font-black text-sm shadow-sm">
+                    {user.name?.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-white">{user.name}</p>
+                    <p className="text-[10px] font-semibold text-yellow-400 uppercase tracking-widest">{user.role}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Back to Parent Action Card */}
+              {user.role === 'child' && parentData && (
+                <button 
+                  onClick={handleBackToParent}
+                  className="w-full bg-blue-600/20 border border-blue-500/30 text-blue-400 p-2.5 rounded-xl flex items-center justify-center gap-2 font-bold text-xs transition-colors"
+                >
+                  <HiArrowLeft /> Return to Parent Session
+                </button>
+              )}
+
+              {/* Primary Links */}
+              <div className="space-y-1">
+                <NavLink to="/" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 text-slate-300 hover:text-white font-medium text-xs hover:bg-slate-800 rounded-xl transition-colors">
+                  <MdHome className="text-base text-yellow-400" /> Home
+                </NavLink>
+                <NavLink to="/subjects" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 text-slate-300 hover:text-white font-medium text-xs hover:bg-slate-800 rounded-xl transition-colors">
+                  <MdSubject className="text-base text-yellow-400" /> Lessons
+                </NavLink>
+                <Link to={`/dashboard/${user._id}`} onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 text-slate-300 hover:text-white font-medium text-xs hover:bg-slate-800 rounded-xl transition-colors">
+                  <HiViewGrid className="text-base text-yellow-400" /> Dashboard
+                </Link>
+                <Link to={`/profile/${user._id}`} onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 text-slate-300 hover:text-white font-medium text-xs hover:bg-slate-800 rounded-xl transition-colors">
+                  <HiUser className="text-base text-yellow-400" /> My Profile
+                </Link>
+                {user.admin && (
+                  <Link to="/admindashboard" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 text-red-400 font-bold text-xs hover:bg-red-500/10 rounded-xl transition-colors">
+                    <HiShieldCheck className="text-base" /> Admin Panel
+                  </Link>
+                )}
+              </div>
+
+              {/* Mobile Quick Learner Switcher */}
+              {user.role === "parent" && linkedChildren.length > 0 && (
+                <div className="pt-2 border-t border-slate-800">
+                  <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider px-2 mb-2">Switch Learner</p>
+                  <div className="space-y-1">
+                    {linkedChildren.map((child) => (
+                      <button
+                        key={child._id}
+                        onClick={() => handleSwitchToChild(child, false)}
+                        className="w-full flex items-center gap-3 px-3 py-2 bg-slate-800/40 hover:bg-slate-800 rounded-xl transition-colors text-left"
+                      >
+                        <div className="w-6 h-6 bg-emerald-500/20 text-emerald-400 rounded-lg flex items-center justify-center text-xs font-bold">
+                          {child.name.charAt(0)}
+                        </div>
+                        <span className="text-xs font-semibold text-slate-300">{child.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="border-t border-slate-800 pt-2">
+                <button 
+                  onClick={handleLogout} 
+                  className="w-full flex items-center gap-3 px-3 py-2.5 text-rose-400 font-bold text-xs hover:bg-rose-500/10 rounded-xl transition-colors text-left"
+                >
+                  <HiLogout className="text-base" /> Logout
+                </button>
+              </div>
             </>
           ) : (
-            <>
-              <NavLink to="/login" onClick={() => setMenuOpen(false)} className="text-slate-800 font-black uppercase text-xs">Login</NavLink>
-              <NavLink to="/register" onClick={() => setMenuOpen(false)} className="text-blue-600 font-black uppercase text-xs">Register</NavLink>
-            </>
+            <div className="flex flex-col space-y-2">
+              <NavLink to="/" onClick={() => setMenuOpen(false)} className="px-3 py-2 text-slate-300 font-medium text-xs">Home</NavLink>
+              <NavLink to="/login" onClick={() => setMenuOpen(false)} className="px-3 py-2 text-slate-300 font-medium text-xs">Login</NavLink>
+              <Link to="/login" onClick={() => setMenuOpen(false)} className="bg-yellow-400 text-slate-900 text-center py-2.5 rounded-xl font-black text-xs shadow-md">
+                Register / Join
+              </Link>
+            </div>
           )}
         </div>
       </div>

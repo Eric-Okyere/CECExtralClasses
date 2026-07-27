@@ -37,7 +37,7 @@ export default function LessonView() {
   const [showConfetti, setShowConfetti] = useState(false);
   const [correctAnswersCount, setCorrectAnswersCount] = useState(0);
 
-  const [timeLeft, setTimeLeft] = useState(15);
+  const [timeLeft, setTimeLeft] = useState(30);
   const timerRef = useRef(null);
 
   const playClap = () => new Audio(clapSound).play();
@@ -335,7 +335,7 @@ export default function LessonView() {
                     onClick={() => setIsQuizStarted(true)}
                     className="bg-white text-slate-900 px-10 py-5 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all"
                   >
-                    Start Lesson Quiz
+                    Start Quiz
                   </button>
                 </div>
               ) : currentQuestionIndex < quizItems.length ? (
