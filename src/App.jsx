@@ -1,9 +1,9 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Login from "./Pages/Login"
-import Register from "./Pages/Register"
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import Login from "./Pages/Login";
+import Register from "./Pages/Register";
 import Dashboard from "./Pages/Dashboard";
-import Subjects from "./Pages/Subjects"
-import Quiz from "./Pages/Quiz"
+import Subjects from "./Pages/Subjects";
+import Quiz from "./Pages/Quiz";
 import Topics from "./Pages/Topics";
 import Home from "./Pages/Home";
 import CreateLesson from "./Pages/Dashboard/CreateLesson";
@@ -22,24 +22,57 @@ import LessonView from "./Pages/LessonView";
 import UserDetails from "./Pages/Userpage/UserDetails";
 import PrivacyPolicy from "./Pages/Userpage/PrivacyPolicy";
 import Terms from "./Pages/Userpage/Terms";
-import TimetableCreator from "./Pages/Userpage/TimetableCreator";
 import AddTaskModal from "./Pages/Userpage/AddTaskModal";
 import NotFound from "./Pages/NotFound";
+import AdminFeedback from "./Pages/Dashboard/AdminFeedback";
+import FeedbackModal from "./components/FeedbackModal";
+import AdminRoute from "./Pages/Dashboard/AdminRoute";
+
+// Helper component that checks the current path before showing FeedbackModal
+function ConditionalFeedbackModal() {
+  const location = useLocation();
+
+  // Define paths or path prefixes where FeedbackModal should NOT appear
+  const excludedPaths = [
+    '/login',
+    '/register',
+    '/admindashboard',
+    '/all-subjects',
+    '/create-subject',
+    '/manage-lessons',
+    '/create-quiz'
+  ];
+
+  // Check if current path matches an excluded exact path OR starts with /admin
+  const isExcluded =
+    excludedPaths.includes(location.pathname) ||
+    location.pathname.startsWith('/admin') ||
+    location.pathname.startsWith('/edit-');
+
+  if (isExcluded) {
+    return null; // Don't render the modal on admin or auth pages
+  }
+
+  return <FeedbackModal />;
+}
 
 function App() {
   return (
     <BrowserRouter>
+      {/* Renders FeedbackModal globally, except on specified admin & login routes */}
+      <ConditionalFeedbackModal />
+
       <Routes>
         {/* PUBLIC ROUTES */}
         <Route path="/" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
-        <Route path="/privacy-policy" element={<PrivacyPolicy/>} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<Terms />} />
+        <Route path="/lesson/:subject/:level/:subStrand/:lessonNumber?" element={<LessonView />} />
 
-
-        {/* PROTECTED ROUTES */}
+        {/* GENERAL USER PROTECTED ROUTES */}
         <Route 
           path="/dashboard/:id" 
           element={<ProtectedRoute><Dashboard /></ProtectedRoute>} 
@@ -53,71 +86,66 @@ function App() {
           element={<ProtectedRoute><Quiz /></ProtectedRoute>} 
         />
         <Route 
-          path="/create-quiz" 
-          element={<ProtectedRoute><CreateLesson /></ProtectedRoute>} 
-        />
-        <Route 
-          path="/manage-lessons" 
-          element={<ProtectedRoute><ManageLessons /></ProtectedRoute>} 
-        />
-        <Route 
-          path="/create-subject" 
-          element={<ProtectedRoute><CreateSubjectForm /></ProtectedRoute>} 
-        />
-      
-        <Route 
-          path="/all-subjects" 
-          element={<ProtectedRoute><AllSubjects /></ProtectedRoute>} 
-        />
-        <Route 
-          path="/edit-lesson/:id" 
-          element={<ProtectedRoute><EditLesson /></ProtectedRoute>} 
-        />
-        <Route 
-          path="/subject-details/:id" 
-          element={<ProtectedRoute><SubjectDetails /></ProtectedRoute>} 
-        />
-        <Route 
-          path="/admindashboard" 
-          element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} 
-        />
-        <Route 
-          path="/edit-subject/:id" 
-          element={<ProtectedRoute><EditSubjectForm /></ProtectedRoute>} 
-        />
-        <Route path="/lesson/:subject/:level/:subStrand" element={<LessonView />} />
-        <Route 
           path="/topics/:subject/:level" 
           element={<ProtectedRoute><Topics /></ProtectedRoute>} 
         />
-        
+        <Route 
+          path="/lesson/:id" 
+          element={<ProtectedRoute><LessonDetails /></ProtectedRoute>} 
+        />
+        <Route 
+          path="/profile/:id" 
+          element={<ProtectedRoute><Profile /></ProtectedRoute>} 
+        />
+        <Route 
+          path="/timetable" 
+          element={<ProtectedRoute><AddTaskModal /></ProtectedRoute>} 
+        />
 
-        <Route path="/lesson/:id" element={
-          <ProtectedRoute>
-            <LessonDetails />
-          </ProtectedRoute>
-        } />
+        {/* ADMIN ONLY ROUTES */}
+        <Route 
+          path="/admindashboard" 
+          element={<AdminRoute><AdminDashboard /></AdminRoute>} 
+        />
+        <Route 
+          path="/admin/feedback" 
+          element={<AdminRoute><AdminFeedback /></AdminRoute>} 
+        />
+        <Route 
+          path="/admin/user/:id" 
+          element={<AdminRoute><UserDetails /></AdminRoute>} 
+        />
+        <Route 
+          path="/create-quiz" 
+          element={<AdminRoute><CreateLesson /></AdminRoute>} 
+        />
+        <Route 
+          path="/manage-lessons" 
+          element={<AdminRoute><ManageLessons /></AdminRoute>} 
+        />
+        <Route 
+          path="/edit-lesson/:id" 
+          element={<AdminRoute><EditLesson /></AdminRoute>} 
+        />
+        <Route 
+          path="/create-subject" 
+          element={<AdminRoute><CreateSubjectForm /></AdminRoute>} 
+        />
+        <Route 
+          path="/all-subjects" 
+          element={<AdminRoute><AllSubjects /></AdminRoute>} 
+        />
+        <Route 
+          path="/edit-subject/:id" 
+          element={<AdminRoute><EditSubjectForm /></AdminRoute>} 
+        />
+        <Route 
+          path="/subject-details/:id" 
+          element={<AdminRoute><SubjectDetails /></AdminRoute>} 
+        />
 
-        <Route path="/profile/:id" element={
-          <ProtectedRoute>
-            <Profile />
-          </ProtectedRoute>
-        } />
-
+        {/* 404 CATCH-ALL ROUTE */}
         <Route path="*" element={<NotFound />} />
-
-        <Route path="/admin/user/:id" element={
-          <ProtectedRoute>
-            <UserDetails />
-          </ProtectedRoute>
-        } />
-   
-
-        <Route path="/timetable" element={
-          <ProtectedRoute>
-            <AddTaskModal />
-          </ProtectedRoute>
-        } />
       </Routes>
     </BrowserRouter>
   );

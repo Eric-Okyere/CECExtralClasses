@@ -4,7 +4,7 @@ import {
   Users, Phone, GraduationCap, Shield, 
   Loader2, Search, ExternalLink, Calendar, 
   Filter, Edit3, X, Save, User as UserIcon, 
-  CheckCircle2, BookOpen, Eye,
+  CheckCircle2, BookOpen, Eye, MessageSquare,
 } from "lucide-react";
 import { API_BASE_URL } from "../../services/BaseUrl";
 import Navbar from "../../components/Navbar";
@@ -89,36 +89,43 @@ export default function AdminDashboard() {
     <Navbar />
     <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-10 text-sm">
       <div className="max-w-7xl mx-auto mb-10">
-        <div className="flex flex-col md:flex-row justify-between gap-6">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-blue-600 rounded-2xl text-white"><Shield size={24} /></div>
             <h1 className="text-3xl font-black uppercase italic">Management Console</h1>
           </div>
 
-
+          <div className="flex flex-wrap items-center gap-3">
             <Link 
               to={"/all-subjects"}
-               className="flex items-center gap-2 px-6 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-600 transition-all shadow-lg shadow-slate-200"
-             >
-               <BookOpen size={16} />
-               Manage Subjects
-             </Link>
-
+              className="flex items-center gap-2 px-6 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-600 transition-all shadow-lg shadow-slate-200"
+            >
+              <BookOpen size={16} />
+              Manage Subjects
+            </Link>
 
             <Link 
               to={"/manage-lessons"}
-              
-               className="flex items-center gap-2 px-6 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-600 transition-all shadow-lg shadow-slate-200"
-             >
-               <BookOpen size={16} />
-               Manage Lessons
-             </Link>
-       
+              className="flex items-center gap-2 px-6 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-600 transition-all shadow-lg shadow-slate-200"
+            >
+              <BookOpen size={16} />
+              Manage Lessons
+            </Link>
 
-          <div className="flex gap-3">
+            {/* Navigation Button to Feedback Dashboard */}
+            <Link 
+              to={"/admin/feedback"}
+              className="flex items-center gap-2 px-6 py-4 bg-blue-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-900 transition-all shadow-lg shadow-blue-100"
+            >
+              <MessageSquare size={16} />
+              View Feedback
+            </Link>
+          </div>
+
+          <div className="flex gap-3 w-full md:w-auto">
              <input 
               placeholder="Search..." 
-              className="p-4 bg-white rounded-2xl border border-slate-100 outline-none" 
+              className="p-4 bg-white rounded-2xl border border-slate-100 outline-none w-full md:w-auto" 
               onChange={(e) => setSearchTerm(e.target.value)} 
              />
           </div>
@@ -137,7 +144,17 @@ export default function AdminDashboard() {
           <tbody className="divide-y divide-slate-50">
             {filteredUsers.map((user) => (
               <tr key={user._id} className="hover:bg-slate-50/40 transition-all">
-                <td className="px-8 py-6 font-black">{user.name} {user.surname}</td>
+                {/* Role-based Identity rendering */}
+                {user.role === "child" || user.role === "student" ? (
+                  <td className="px-8 py-6 font-black">
+                    {user.name} {user.surname}
+                  </td>
+                ) : (
+                  <td className="px-8 py-6 font-black">
+                    {user.name}
+                  </td>
+                )}
+
                 <td className="px-6 py-6 uppercase font-bold text-[10px] text-blue-600">{user.role}</td>
                 <td className="px-8 py-6 text-right">
                   <div className="flex justify-end gap-2">

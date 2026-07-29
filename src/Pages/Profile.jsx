@@ -23,8 +23,15 @@ export default function Profile() {
   const [newChild, setNewChild] = useState({ 
     firstName: "", 
     lastName: "", 
+    gender: "",
     age: "", 
-    level: "" 
+    level: "",
+    disabilityProfile: {
+      hasDisability: false,
+      type: "None",
+      details: "",
+      accommodationsNeeded: ""
+    }
   });
   
   const { id } = useParams();
@@ -102,7 +109,19 @@ export default function Profile() {
       if (res.ok) {
         setChildren([...children, data]); 
         setShowAddModal(false); 
-        setNewChild({ firstName: "", lastName: "", age: "", level: "" }); 
+        setNewChild({ 
+          firstName: "", 
+          lastName: "", 
+          gender: "",
+          age: "", 
+          level: "",
+          disabilityProfile: {
+            hasDisability: false,
+            type: "None",
+            details: "",
+            accommodationsNeeded: ""
+          }
+        }); 
       } else {
         alert(data.msg || "Error registering student");
       }
@@ -284,7 +303,7 @@ export default function Profile() {
                 initial={{ scale: 0.9, opacity: 0 }} 
                 animate={{ scale: 1, opacity: 1 }} 
                 exit={{ scale: 0.9, opacity: 0 }}
-                className="bg-white w-full max-w-md rounded-[3.5rem] p-10 shadow-2xl relative"
+                className="bg-white w-full max-w-md rounded-[3.5rem] p-10 shadow-2xl relative max-h-[90vh] overflow-y-auto"
               >
                 <button 
                   onClick={() => setShowAddModal(false)} 
@@ -317,7 +336,17 @@ export default function Profile() {
                   </div>
 
                   <select 
-                    className="w-full p-4 bg-slate-50 rounded-2xl text-sm font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all" 
+                    className="w-full p-4 bg-slate-50 rounded-2xl text-sm font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all text-slate-700" 
+                    value={newChild.gender} 
+                    onChange={(e) => setNewChild({...newChild, gender: e.target.value})}
+                  >
+                    <option value="">Select Gender</option>
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                  </select>
+
+                  <select 
+                    className="w-full p-4 bg-slate-50 rounded-2xl text-sm font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all text-slate-700" 
                     value={newChild.level} 
                     onChange={(e) => setNewChild({...newChild, level: e.target.value})}
                   >
@@ -334,6 +363,80 @@ export default function Profile() {
                     value={newChild.age} 
                     onChange={(e) => setNewChild({...newChild, age: e.target.value})} 
                   />
+
+                  {/* Disability / Special Needs Inputs */}
+                  <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-3">
+                    <label className="flex items-center gap-3 cursor-pointer">
+                      <input 
+                        type="checkbox"
+                        checked={newChild.disabilityProfile.hasDisability}
+                        onChange={(e) => setNewChild({
+                          ...newChild,
+                          disabilityProfile: {
+                            ...newChild.disabilityProfile,
+                            hasDisability: e.target.checked,
+                            type: e.target.checked ? newChild.disabilityProfile.type : "None"
+                          }
+                        })}
+                        className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="text-xs font-bold text-slate-700">
+                        Student requires special accommodations / has a disability
+                      </span>
+                    </label>
+
+                    {newChild.disabilityProfile.hasDisability && (
+                      <div className="space-y-3 pt-2">
+                        <select
+                          className="w-full p-3 bg-white rounded-xl text-xs font-bold border border-slate-200 text-slate-700"
+                          value={newChild.disabilityProfile.type}
+                          onChange={(e) => setNewChild({
+                            ...newChild,
+                            disabilityProfile: {
+                              ...newChild.disabilityProfile,
+                              type: e.target.value
+                            }
+                          })}
+                        >
+                          <option value="None">Select Category</option>
+                          <option value="Visual">Visual Impairment</option>
+                          <option value="Hearing">Hearing Impairment</option>
+                          <option value="Learning/Cognitive">Learning / Cognitive (e.g. Dyslexia, ADHD)</option>
+                          <option value="Physical/Mobility">Physical / Mobility</option>
+                          <option value="Speech/Language">Speech / Language</option>
+                          <option value="Other">Other</option>
+                        </select>
+
+                        <input
+                          type="text"
+                          placeholder="Details / Diagnosis (optional)"
+                          className="w-full p-3 bg-white rounded-xl text-xs font-bold border border-slate-200 outline-none"
+                          value={newChild.disabilityProfile.details}
+                          onChange={(e) => setNewChild({
+                            ...newChild,
+                            disabilityProfile: {
+                              ...newChild.disabilityProfile,
+                              details: e.target.value
+                            }
+                          })}
+                        />
+
+                        <input
+                          type="text"
+                          placeholder="Accommodations Needed (e.g., extra time, large font)"
+                          className="w-full p-3 bg-white rounded-xl text-xs font-bold border border-slate-200 outline-none"
+                          value={newChild.disabilityProfile.accommodationsNeeded}
+                          onChange={(e) => setNewChild({
+                            ...newChild,
+                            disabilityProfile: {
+                              ...newChild.disabilityProfile,
+                              accommodationsNeeded: e.target.value
+                            }
+                          })}
+                        />
+                      </div>
+                    )}
+                  </div>
 
                   <button 
                     onClick={handleAddChild} 
