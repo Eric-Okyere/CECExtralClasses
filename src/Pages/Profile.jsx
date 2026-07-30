@@ -93,6 +93,7 @@ export default function Profile() {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
+      // Route matched to router.post("/add-child", addChild)
       const res = await fetch(`${API_BASE_URL}auth/add-child`, {
         method: "POST",
         headers: { 
@@ -107,7 +108,9 @@ export default function Profile() {
 
       const data = await res.json();
       if (res.ok) {
-        setChildren([...children, data]); 
+        // Support response whether it returns { user: childObj } or the child object directly
+        const addedChild = data.user || data;
+        setChildren((prev) => [addedChild, ...prev]); 
         setShowAddModal(false); 
         setNewChild({ 
           firstName: "", 
@@ -123,7 +126,7 @@ export default function Profile() {
           }
         }); 
       } else {
-        alert(data.msg || "Error registering student");
+        alert(data.msg || data.message || "Error registering student");
       }
     } catch (err) {
       alert("Error connecting to server");
@@ -269,12 +272,14 @@ export default function Profile() {
                   onClick={() => navigate(`/profile/${child._id}`)}
                 >
                   <div className="flex items-center gap-5">
-                    <div className="w-14 h-14 bg-blue-50 rounded-[1.2rem] flex items-center justify-center text-blue-600 text-xl font-black">{child.name?.charAt(0)}</div>
+                    <div className="w-14 h-14 bg-blue-50 rounded-[1.2rem] flex items-center justify-center text-blue-600 text-xl font-black">
+                      {child.name?.charAt(0)}
+                    </div>
                     <div>
                       <h4 className="font-black text-slate-800 uppercase mb-2">{child.name} {child.surname}</h4>
                       <div className="flex gap-3">
                         <span className="text-[10px] font-black text-slate-400 uppercase bg-slate-50 px-2 py-1 rounded-md">{child.learningProfile?.level}</span>
-                        <span className="text-[10px] font-black text-orange-500 uppercase bg-orange-50 px-2 py-1 rounded-md">{child.learningProfile?.xp} XP</span>
+                        <span className="text-[10px] font-black text-orange-500 uppercase bg-orange-50 px-2 py-1 rounded-md">{child.learningProfile?.xp || 0} XP</span>
                       </div>
                     </div>
                   </div>

@@ -29,11 +29,14 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
   const [agreed, setAgreed] = useState(false);
-  const [showModal, setShowModal] = useState(false);
+  
+  // UI Modals
+  const [showModal, setShowModal] = useState(false); // First-time setup modal
   const [loggedInUser, setLoggedInUser] = useState(null);
 
   const navigate = useNavigate();
 
+  // Profile Setup State (for new users)
   const [extraInfo, setExtraInfo] = useState({
     level: "",
     gender: "",
@@ -51,6 +54,7 @@ export default function Login() {
     },
   });
 
+  // --- GOOGLE LOGIN HANDLER ---
   const handleGoogleSuccess = async (credentialResponse) => {
     setLoading(true);
     setLoadingMessage("Authenticating with Google...");
@@ -72,9 +76,9 @@ export default function Login() {
       if (res.ok) {
         localStorage.setItem("token", data.token);
         localStorage.setItem("user", JSON.stringify(data.user));
+        setLoggedInUser(data.user);
 
         if (data.isNewUser) {
-          setLoggedInUser(data.user);
           setShowModal(true);
           setLoading(false);
         } else {
@@ -91,6 +95,7 @@ export default function Login() {
     }
   };
 
+  // --- UPDATE PROFILE SETUP HANDLER (NEW USERS) ---
   const handleUpdateProfile = async () => {
     const userId = loggedInUser?._id || loggedInUser?.id;
     if (!userId) {
@@ -154,6 +159,8 @@ export default function Login() {
           lastName: extraInfo.childLastName,
           age: Number(extraInfo.childAge),
           level: extraInfo.level,
+          gender: extraInfo.gender,
+          disabilityProfile: extraInfo.disabilityProfile,
         };
 
         const childRes = await fetch(getApiUrl("auth/add-child"), {
@@ -257,6 +264,7 @@ export default function Login() {
         </div>
       </div>
 
+      {/* --- MODAL: FIRST TIME PROFILE SETUP --- */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-900/60 flex justify-center items-center p-4 z-50 overflow-y-auto">
           <div className="bg-white p-8 rounded-[2rem] shadow-2xl max-w-lg w-full my-8 max-h-[90vh] overflow-y-auto">
