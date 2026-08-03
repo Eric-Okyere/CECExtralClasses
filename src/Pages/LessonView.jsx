@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import Confetti from "react-confetti";
 import Navbar from "../components/Navbar";
 import { 
   ChevronLeft, Lock, CheckCircle2, 
   List, FileX, ArrowRight, Timer as TimerIcon, 
-  Play, Users, BookOpen, Layers, Volume2, VolumeX, RotateCcw
+  Play, Users, BookOpen, Layers, Volume2, VolumeX, RotateCcw, LayoutDashboard, User
 } from "lucide-react";
 import { API_BASE_URL } from "../services/BaseUrl";
 
@@ -16,16 +16,31 @@ import oohSound from "../assets/Ooh_-_Sound.mp3";
 
 export default function LessonView() {
   const { subject, level, subStrand, lessonNumber } = useParams();
+  const [searchParams] = useSearchParams();
+  const lessonIdFromUrl = searchParams.get("id");
+  const learnerIdFromUrl = searchParams.get("learnerId");
+  
   const navigate = useNavigate();
   
   const [lesson, setLesson] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
-  const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem("user");
-    const parsed = saved ? JSON.parse(saved) : null;
-    return parsed?.user ? parsed.user : parsed;
+  const [isPreviouslyCompleted, setIsPreviouslyCompleted] = useState(false);
+  
+  // 1. DYNAMIC ACTIVE LEARNER RESOLUTION
+  const [activeProfile, setActiveProfile] = useState(() => {
+    try {
+      const activeChild = localStorage.getItem("activeChildProfile") || localStorage.getItem("activeLearner");
+      if (activeChild) {
+        return JSON.parse(activeChild);
+      }
+      const savedUser = localStorage.getItem("user");
+      const parsed = savedUser ? JSON.parse(savedUser) : null;
+      return parsed?.user ? parsed.user : parsed;
+    } catch (e) {
+      return null;
+    }
   });
   
   const [activeVideoIndex, setActiveVideoIndex] = useState(0);
@@ -39,13 +54,44 @@ export default function LessonView() {
   const [showConfetti, setShowConfetti] = useState(false);
   const [correctAnswersCount, setCorrectAnswersCount] = useState(0);
 
-  // --- UPDATED QUIZ TIMER TO 30 SECONDS ---
+  // --- QUIZ TIMER ---
   const [timeLeft, setTimeLeft] = useState(30);
   const timerRef = useRef(null);
 
-  // --- AUDIO REFS & LOGIC ---
+  // --- AUDIO REFS ---
   const clapAudioRef = useRef(new Audio(clapSound));
   const oohAudioRef = useRef(new Audio(oohSound));
+
+  // Sanitize base URL formatting
+  const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL : `${API_BASE_URL}/`;
+
+  // Determine active target user ID (Child profile ID, URL learner ID, or fallback account ID)
+  const activeUserId = learnerIdFromUrl || activeProfile?._id || activeProfile?.id;
+
+  // 2. LISTEN FOR PROFILE SWITCHES
+  useEffect(() => {
+    const handleProfileSync = () => {
+      try {
+        const activeChild = localStorage.getItem("activeChildProfile") || localStorage.getItem("activeLearner");
+        if (activeChild) {
+          setActiveProfile(JSON.parse(activeChild));
+          return;
+        }
+        const savedUser = localStorage.getItem("user");
+        const parsed = savedUser ? JSON.parse(savedUser) : null;
+        setActiveProfile(parsed?.user ? parsed.user : parsed);
+      } catch (err) {
+        console.error("Profile sync error:", err);
+      }
+    };
+
+    window.addEventListener("storage", handleProfileSync);
+    window.addEventListener("profileChanged", handleProfileSync);
+    return () => {
+      window.removeEventListener("storage", handleProfileSync);
+      window.removeEventListener("profileChanged", handleProfileSync);
+    };
+  }, []);
 
   useEffect(() => {
     if (isMuted) {
@@ -70,82 +116,119 @@ export default function LessonView() {
     }
   };
 
-  // --- Helper to save completion status to localStorage matching Topics.jsx checks ---
+  // 3. SCOPED COMPLETION HELPER
   const markLessonAsCompleted = (lessonObj, finalScore) => {
     try {
-      const rawSubStrand = decodeURIComponent(subStrand || "").trim();
-      const targetNum = lessonObj?.lessonNumber || lessonNumber || 1;
-
-      // 1. Set boolean string flags for instant Topics.jsx evaluation
+      const uid = activeUserId || "guest";
       if (lessonObj?._id) {
-        localStorage.setItem(`${subject}-${level}-${rawSubStrand}-${lessonObj._id}`, "true");
-        localStorage.setItem(`completed_${lessonObj._id}`, "true");
-        localStorage.setItem(`completed_lesson_${lessonObj._id}`, "true");
+        localStorage.setItem(`completed_lesson_${uid}_${lessonObj._id}`, "true");
       }
-
-      localStorage.setItem(`completed-${subject}-${level}-${rawSubStrand}-${targetNum}`, "true");
-      localStorage.setItem(`completed_${subject}_${level}_${rawSubStrand}_${targetNum}`, "true");
-
-      // Save structured payload
       const completionData = JSON.stringify({
+        userId: uid,
         completed: true,
         score: finalScore,
         completedAt: new Date().toISOString()
       });
-      localStorage.setItem(`progress_data_${lessonObj?._id || targetNum}`, completionData);
+      if (lessonObj?._id) {
+        localStorage.setItem(`progress_data_${uid}_${lessonObj._id}`, completionData);
+      }
+      setIsPreviouslyCompleted(true);
     } catch (err) {
       console.error("Failed to set completion status in localStorage:", err);
     }
   };
 
-  // --- 1. FETCH LESSON DATA & CHECK UNLOCK STATUS ---
+  // --- 4. FETCH LESSON DATA AND SCOPED PROGRESS ---
   useEffect(() => {
     const fetchLessonData = async () => {
       try {
         setLoading(true);
-        const userId = user?._id || user?.user?._id;
-        let freshUser = user;
+        setError(null);
 
-        if (userId) {
+        let freshUser = activeProfile;
+
+        if (activeUserId) {
           try {
-            const userRes = await axios.get(`${API_BASE_URL}auth/user/${userId}`);
+            const userRes = await axios.get(`${baseUrl}auth/user/${activeUserId}`);
             freshUser = userRes.data;
-            setUser(freshUser);
-            localStorage.setItem("user", JSON.stringify(freshUser));
+            setActiveProfile(freshUser);
           } catch (userErr) {
-            console.error("Using local user state", userErr);
+            console.error("Using local active profile state", userErr);
           }
         }
 
-        const response = await axios.get(`${API_BASE_URL}lessons`);
-        const allLessons = response.data.data || [];
-        const decodedSub = decodeURIComponent(subStrand || "").trim().toLowerCase();
-        
-        const foundLesson = allLessons.find((l) => {
-          const matchSubject = l.subject?.toLowerCase() === subject?.toLowerCase();
-          const matchLevel = l.level?.toLowerCase() === level?.toLowerCase();
-          
-          if (lessonNumber) {
-            return matchSubject && matchLevel && String(l.lessonNumber) === String(lessonNumber);
+        let targetLesson = null;
+
+        if (lessonIdFromUrl) {
+          try {
+            const idRes = await axios.get(`${baseUrl}lessons/${lessonIdFromUrl}`);
+            targetLesson = idRes.data.data || idRes.data;
+          } catch (e) {
+            console.warn("Direct ID fetch failed, trying full scan...", e);
+          }
+        }
+
+        if (!targetLesson) {
+          const response = await axios.get(`${baseUrl}lessons`);
+          const allLessons = response.data.data || response.data || [];
+          const decodedSub = decodeURIComponent(subStrand || "").trim().toLowerCase();
+
+          targetLesson = allLessons.find((l) => {
+            if (lessonIdFromUrl && l._id === lessonIdFromUrl) return true;
+
+            const matchSubject = l.subject?.toLowerCase() === subject?.toLowerCase();
+            const matchLevel = l.level?.toLowerCase() === level?.toLowerCase();
+            
+            if (lessonNumber) {
+              return matchSubject && matchLevel && String(l.lessonNumber) === String(lessonNumber);
+            }
+
+            const lSubStrand = typeof l.subStrand === "object" ? l.subStrand.title : l.subStrand;
+            const matchSubStrand = lSubStrand?.toLowerCase() === decodedSub || 
+                                   lSubStrand?.toLowerCase().includes(decodedSub);
+
+            return matchSubject && matchLevel && matchSubStrand;
+          });
+        }
+
+        if (targetLesson) {
+          setLesson(targetLesson);
+
+          const uid = activeUserId || "guest";
+
+          // Check local completion
+          let isDone = localStorage.getItem(`completed_lesson_${uid}_${targetLesson._id}`) === "true";
+
+          if (!isDone && activeUserId) {
+            try {
+              const token = localStorage.getItem("token");
+              const progRes = await axios.get(`${baseUrl}progress/user/${activeUserId}`, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {}
+              });
+              const userProgressList = progRes.data?.data || progRes.data || [];
+              if (Array.isArray(userProgressList)) {
+                isDone = userProgressList.some(p => {
+                  const pLessonId = p.lesson?._id || p.lesson || p.lessonId;
+                  return pLessonId === targetLesson._id || (
+                    Number(p.lessonNumber) === Number(targetLesson.lessonNumber) &&
+                    p.subject?.toLowerCase() === subject?.toLowerCase()
+                  );
+                });
+              }
+            } catch (pErr) {
+              console.warn("Remote progress fetch failed, falling back to local storage", pErr);
+            }
           }
 
-          const matchSubStrand = l.subStrand?.toLowerCase() === decodedSub || 
-                                 l.subStrand?.toLowerCase().includes(decodedSub);
-          return matchSubject && matchLevel && matchSubStrand;
-        });
-
-        if (foundLesson) {
-          setLesson(foundLesson);
-          const unlockedList = freshUser?.unlockedLessons || [];
-          const alreadyUnlocked = unlockedList.some(ul => 
-            ul.subject?.toLowerCase() === subject?.toLowerCase() &&
-            (ul.subStrand?.toLowerCase() === decodedSub || String(ul.lessonNumber) === String(foundLesson.lessonNumber))
-          );
-
-          if (alreadyUnlocked || !foundLesson.videos?.length) {
+          if (isDone) {
+            setIsPreviouslyCompleted(true);
             setIsQuizLocked(false);
-            setWatchedVideos(foundLesson.videos?.map(v => v._id) || []);
+          } else {
+            setIsPreviouslyCompleted(false);
+            setIsQuizLocked(true);
           }
+          
+          setWatchedVideos([]);
         } else {
           setError("Lesson not found");
         }
@@ -156,9 +239,9 @@ export default function LessonView() {
       }
     };
     fetchLessonData();
-  }, [subject, level, subStrand, lessonNumber]);
+  }, [subject, level, subStrand, lessonNumber, lessonIdFromUrl, activeUserId, baseUrl]);
 
-  // --- 2. TIMER LOGIC ---
+  // --- 5. TIMER LOGIC ---
   useEffect(() => {
     if (!isQuizLocked && isQuizStarted && !feedback && (lesson?.quiz?.length || 0) > currentQuestionIndex) {
       timerRef.current = setInterval(() => {
@@ -181,45 +264,56 @@ export default function LessonView() {
     checkIfQuizFinished(correctAnswersCount);
   };
 
-  // --- SYNC PROGRESS TO BACKEND & LOCAL STORAGE ---
+  const getStrandValue = () => {
+    if (!lesson) return "";
+    if (typeof lesson.strand === "object" && lesson.strand !== null) {
+      return lesson.strand.title || lesson.strand.name || lesson.strand.strandName || "";
+    }
+    if (lesson.strandName) return lesson.strandName;
+    if (lesson.strandTitle) return lesson.strandTitle;
+    return typeof lesson.strand === "string" ? lesson.strand : "";
+  };
+
+  // --- 6. USER-SCOPED PROGRESS SYNC ---
   const syncProgressAndXP = async (finalCorrectCount) => {
     try {
       const token = localStorage.getItem("token");
-      const userId = user?._id || user?.user?._id;
       const earnedXP = finalCorrectCount * 2;
       const decodedSubStrand = decodeURIComponent(subStrand || "").trim();
+      const strandName = getStrandValue();
+      const resolvedLessonName = lesson?.lessonName || lesson?.title || displaySubStrand || "Lesson";
 
-      // 1. Mark in local storage
       markLessonAsCompleted(lesson, finalCorrectCount);
 
-      // 2. Save progress to database
-      await axios.post(
-        `${API_BASE_URL}progress/save`, 
-        {
-          user: userId,
-          subject,
-          level,
-          strand: lesson?.strand || "",
-          subStrand: decodedSubStrand,
-          lessonNumber: lesson?.lessonNumber || lessonNumber,
-          score: finalCorrectCount,
-          total: lesson?.quiz?.length || 0,
-          xp: earnedXP
-        }, 
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
+      if (activeUserId) {
+        await axios.post(
+          `${baseUrl}progress/save`, 
+          {
+            userId: activeUserId,
+            user: activeUserId,
+            lessonId: lesson?._id,
+            lesson: lesson?._id,
+            lessonName: resolvedLessonName,
+            subject,
+            level,
+            strand: strandName,          
+            subStrand: decodedSubStrand,
+            lessonNumber: Number(lesson?.lessonNumber || lessonNumber || 1),
+            score: finalCorrectCount,
+            total: lesson?.quiz?.length || 0,
+            xp: earnedXP
+          }, 
+          {
+            headers: token ? { Authorization: `Bearer ${token}` } : {}
+          }
+        );
+      }
 
-      // 3. Update local user state
-      const updatedUser = { ...user };
+      const updatedUser = { ...activeProfile };
       if (updatedUser.learningProfile) {
         updatedUser.learningProfile.xp = (updatedUser.learningProfile.xp || 0) + earnedXP;
-      } else if (updatedUser.user?.learningProfile) {
-        updatedUser.user.learningProfile.xp = (updatedUser.user.learningProfile.xp || 0) + earnedXP;
       }
-      localStorage.setItem("user", JSON.stringify(updatedUser));
-      setUser(updatedUser);
+      setActiveProfile(updatedUser);
     } catch (err) {
       console.error("Failed to sync progress:", err);
     }
@@ -230,38 +324,22 @@ export default function LessonView() {
       const updated = [...watchedVideos, videoId];
       setWatchedVideos(updated);
       
-      if (updated.length === (lesson?.videos?.length || 0)) {
+      const totalVideosCount = lesson?.videos?.length || 0;
+      if (updated.length === totalVideosCount) {
         setIsQuizLocked(false); 
         try {
-          const userId = user?._id || user?.user?._id;
           const decodedSubStrand = decodeURIComponent(subStrand || "").trim();
 
-          await axios.post(`${API_BASE_URL}auth/unlock-lesson`, {
-            userId: userId,
-            lessonData: { 
-              subject, 
-              level, 
-              subStrand: decodedSubStrand,
-              lessonNumber: lesson?.lessonNumber || lessonNumber 
-            }
-          });
-          
-          const updatedUser = { ...user };
-          if (!updatedUser.unlockedLessons) updatedUser.unlockedLessons = [];
-          const existsLocally = updatedUser.unlockedLessons.some(ul => 
-            ul.subStrand?.toLowerCase() === decodedSubStrand.toLowerCase() ||
-            String(ul.lessonNumber) === String(lesson?.lessonNumber || lessonNumber)
-          );
-
-          if (!existsLocally) {
-            updatedUser.unlockedLessons.push({ 
-              subject, 
-              level, 
-              subStrand: decodedSubStrand,
-              lessonNumber: lesson?.lessonNumber || lessonNumber
+          if (activeUserId) {
+            await axios.post(`${baseUrl}auth/unlock-lesson`, {
+              userId: activeUserId,
+              lessonData: { 
+                subject, 
+                level, 
+                subStrand: decodedSubStrand,
+                lessonNumber: lesson?.lessonNumber || lessonNumber 
+              }
             });
-            localStorage.setItem("user", JSON.stringify(updatedUser));
-            setUser(updatedUser);
           }
         } catch (err) {
           console.error("Failed to persist unlock status", err);
@@ -299,22 +377,29 @@ export default function LessonView() {
   const nextQuestion = () => {
     setFeedback(null);
     setSelectedOption(null);
-    setTimeLeft(30); // RESET TO 30s FOR NEXT QUESTION
+    setTimeLeft(30);
     setCurrentQuestionIndex((prev) => prev + 1);
   };
 
-  const handleRestartQuiz = () => {
+  const handleStartOrRestartQuiz = () => {
     setCurrentQuestionIndex(0);
     setCorrectAnswersCount(0);
     setFeedback(null);
     setSelectedOption(null);
-    setTimeLeft(30); // RESET TO 30s FOR RESTARTED QUIZ
+    setTimeLeft(30);
     setIsQuizStarted(true);
   };
 
   const displayLessonNumber = lesson?.lessonNumber || lessonNumber;
+  const displaySubStrand = typeof lesson?.subStrand === "object" ? lesson.subStrand.title : (lesson?.subStrand || subStrand);
 
-  if (!loading && user?.role === "parent" && !user?.admin) {
+  const totalVideos = lesson?.videos?.length || 0;
+  const videosWatchedCount = watchedVideos.length;
+  const isAllVideosWatched = totalVideos > 0 && videosWatchedCount === totalVideos;
+  
+  const isQuizEligible = isAllVideosWatched || isPreviouslyCompleted;
+
+  if (!loading && activeProfile?.role === "parent" && !activeProfile?.admin && !learnerIdFromUrl) {
     return (
       <div className="min-h-screen bg-[#F8FAFC]">
         <Navbar />
@@ -323,8 +408,13 @@ export default function LessonView() {
             <Users size={48} strokeWidth={1.5} />
           </div>
           <h2 className="text-4xl font-black text-slate-900 uppercase italic mb-4">Switch to Student View</h2>
-          <p className="text-slate-400 font-black uppercase tracking-widest text-[10px] mb-8">Please switch to a student profile to view this lesson.</p>
-          <button onClick={() => navigate('/dashboard')} className="bg-blue-600 text-white px-10 py-5 rounded-2xl font-black uppercase text-xs">Go to Dashboard</button>
+          <p className="text-slate-400 font-black uppercase tracking-widest text-[10px] mb-8">Please switch to a student profile (like Joyce, Michiel, or Mary) to view this lesson.</p>
+          <button 
+            onClick={() => navigate(activeUserId ? `/dashboard/${activeUserId}` : '/dashboard')} 
+            className="bg-blue-600 text-white px-10 py-5 rounded-2xl font-black uppercase text-xs"
+          >
+            Go to Dashboard
+          </button>
         </div>
       </div>
     );
@@ -365,11 +455,9 @@ export default function LessonView() {
   const currentQuiz = quizItems[currentQuestionIndex];
   const isLastQuestion = currentQuestionIndex === quizItems.length - 1;
 
-  const totalVideos = lesson.videos?.length || 0;
-  const videosWatchedCount = watchedVideos.length;
-  const videoProgressPercent = totalVideos > 0 ? (videosWatchedCount / totalVideos) * 50 : 50;
+  const videoProgressPercent = totalVideos > 0 ? (videosWatchedCount / totalVideos) * 50 : 0;
   const quizProgressPercent = currentQuestionIndex > 0 ? ((currentQuestionIndex + 1) / quizItems.length) * 50 : 0;
-  const totalLessonProgress = Math.min(100, Math.round(videoProgressPercent + quizProgressPercent));
+  const totalLessonProgress = isPreviouslyCompleted ? 100 : Math.min(100, Math.round(videoProgressPercent + quizProgressPercent));
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-20 relative overflow-x-hidden">
@@ -380,6 +468,24 @@ export default function LessonView() {
       <Navbar />
 
       <div className="max-w-[1400px] mx-auto px-6 pt-10">
+        {/* LEARNER PROFILE HEADER BANNER */}
+        {activeProfile && (
+          <div className="mb-6 flex items-center justify-between bg-white border border-slate-200/80 p-4 rounded-2xl shadow-sm">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-blue-600 text-white font-black rounded-xl flex items-center justify-center uppercase text-sm">
+                {activeProfile.name ? activeProfile.name.charAt(0) : <User size={18} />}
+              </div>
+              <div>
+                <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Active Learner</p>
+                <h2 className="text-sm font-black text-slate-800 uppercase">{activeProfile.name || "Student Profile"}</h2>
+              </div>
+            </div>
+            <span className="text-[10px] font-black uppercase bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full border border-emerald-200">
+              Personalized Session
+            </span>
+          </div>
+        )}
+
         <header className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-400 font-black text-[10px] uppercase hover:text-slate-600 transition-colors">
@@ -398,9 +504,9 @@ export default function LessonView() {
             <span className="bg-blue-50 text-blue-600 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider">
               {subject} • {level}
             </span>
-            {lesson.strand && (
+            {getStrandValue() && (
               <span className="bg-slate-100 text-slate-600 text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1">
-                <Layers size={12} /> Strand: {lesson.strand}
+                <Layers size={12} /> Strand: {getStrandValue()}
               </span>
             )}
             {displayLessonNumber != null && (
@@ -411,12 +517,12 @@ export default function LessonView() {
           </div>
 
           <h1 className="text-4xl font-black text-slate-900 uppercase italic leading-tight">
-            {lesson.lessonName ? lesson.lessonName : lesson.subStrand}
+            {lesson.lessonName ? lesson.lessonName : displaySubStrand}
           </h1>
 
           {lesson.lessonName && (
             <p className="text-slate-500 font-bold text-xs uppercase tracking-wider mt-1 flex items-center gap-1">
-              <BookOpen size={14} className="text-blue-500" /> Sub-strand: {lesson.subStrand}
+              <BookOpen size={14} className="text-blue-500" /> Sub-strand: {displaySubStrand}
             </p>
           )}
 
@@ -489,7 +595,7 @@ export default function LessonView() {
 
           <div className="lg:col-span-5">
             <div className="bg-slate-900 p-10 rounded-[3.5rem] text-white shadow-2xl min-h-[600px] flex flex-col relative overflow-hidden">
-              {!isQuizLocked && isQuizStarted && !feedback && currentQuestionIndex < quizItems.length && (
+              {isQuizEligible && isQuizStarted && !feedback && currentQuestionIndex < quizItems.length && (
                 <div className="absolute top-0 left-0 h-1.5 bg-blue-500 transition-all duration-1000 linear" style={{ width: `${(timeLeft / 30) * 100}%` }} />
               )}
               <div className="flex justify-between items-center mb-10">
@@ -499,24 +605,64 @@ export default function LessonView() {
                 </div>
                 <span className="text-[10px] font-black bg-white/10 px-3 py-1 rounded-full">{currentQuestionIndex + 1} / {quizItems.length}</span>
               </div>
-              {isQuizLocked ? (
+
+              {!isQuizEligible ? (
+                /* LOCKED STATE */
                 <div className="flex-grow flex flex-col items-center justify-center text-center">
-                  <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-4"><Lock className="text-slate-600" /></div>
-                  <p className="text-xs font-black uppercase text-slate-500 px-6 italic">Watch all videos to unlock the quiz</p>
+                  <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mb-4">
+                    <Lock className="text-slate-600" />
+                  </div>
+                  <h3 className="text-xl font-black uppercase italic mb-2">Quiz Locked</h3>
+                  <p className="text-xs font-black uppercase text-slate-500 px-6 italic">
+                    Please watch all parts of the video to unlock the quiz.
+                  </p>
                 </div>
               ) : !isQuizStarted ? (
+                /* READY STATE */
                 <div className="flex-grow flex flex-col items-center justify-center text-center">
-                  <div className="w-20 h-20 bg-blue-600 rounded-[2rem] flex items-center justify-center mb-6 shadow-2xl shadow-blue-500/20"><Play className="text-white fill-current" size={32} /></div>
-                  <h3 className="text-2xl font-black uppercase italic mb-2">Quiz Ready!</h3>
-                  <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-8">Test what you've learned in {lesson.lessonName || lesson.subStrand}</p>
-                  <button 
-                    onClick={() => setIsQuizStarted(true)}
-                    className="bg-white text-slate-900 px-10 py-5 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all"
-                  >
-                    Start Quiz
-                  </button>
+                  <div className="w-20 h-20 bg-blue-600 rounded-[2rem] flex items-center justify-center mb-6 shadow-2xl shadow-blue-500/20">
+                    {isPreviouslyCompleted ? (
+                      <CheckCircle2 className="text-white" size={36} />
+                    ) : (
+                      <Play className="text-white fill-current" size={32} />
+                    )}
+                  </div>
+                  <h3 className="text-2xl font-black uppercase italic mb-2">
+                    {isPreviouslyCompleted ? "Quiz Completed!" : "Quiz Ready!"}
+                  </h3>
+                  <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-8">
+                    {isPreviouslyCompleted 
+                      ? `${activeProfile?.name || 'This user'} has already completed this lesson's quiz.`
+                      : `Test what you've learned in ${lesson.lessonName || displaySubStrand}`
+                    }
+                  </p>
+                  
+                  {isPreviouslyCompleted ? (
+                    <div className="flex flex-col sm:flex-row gap-3 w-full">
+                      <button 
+                        onClick={handleStartOrRestartQuiz}
+                        className="flex-1 bg-white/10 hover:bg-white/20 text-white border border-white/20 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest transition-all flex items-center justify-center gap-2"
+                      >
+                        <RotateCcw size={14} /> Retake Quiz
+                      </button>
+                      <button 
+                        onClick={() => navigate(activeUserId ? `/dashboard/${activeUserId}` : '/dashboard')} 
+                        className="flex-1 bg-white text-slate-900 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all flex items-center justify-center gap-2"
+                      >
+                        <LayoutDashboard size={14} /> View Result
+                      </button>
+                    </div>
+                  ) : (
+                    <button 
+                      onClick={handleStartOrRestartQuiz}
+                      className="bg-white text-slate-900 px-10 py-5 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:scale-105 transition-all"
+                    >
+                      Start Quiz
+                    </button>
+                  )}
                 </div>
               ) : currentQuestionIndex < quizItems.length ? (
+                /* ACTIVE QUIZ QUESTIONS */
                 <div className="flex-grow flex flex-col">
                   <p className="text-lg font-bold leading-tight mb-8">{currentQuiz?.question}</p>
                   <div className="space-y-3 mb-8">
@@ -543,6 +689,7 @@ export default function LessonView() {
                   )}
                 </div>
               ) : (
+                /* QUIZ RESULT OVERVIEW */
                 <div className="flex-grow flex flex-col items-center justify-center text-center">
                   <CheckCircle2 size={60} className="text-emerald-500 mb-4" />
                   <h2 className="text-2xl font-black uppercase italic">Lesson Mastered!</h2>
@@ -550,13 +697,13 @@ export default function LessonView() {
                   
                   <div className="space-y-3 w-full">
                     <button 
-                      onClick={handleRestartQuiz}
+                      onClick={handleStartOrRestartQuiz}
                       className="w-full bg-slate-800 hover:bg-slate-700 text-white py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 transition-colors"
                     >
                       <RotateCcw size={14} /> Retake Quiz
                     </button>
                     <button 
-                      onClick={() => navigate(`/dashboard/${user?._id || user?.user?._id}`)} 
+                      onClick={() => navigate(activeUserId ? `/dashboard/${activeUserId}` : '/dashboard')} 
                       className="w-full bg-white text-slate-900 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-100 transition-colors"
                     >
                       View Result in Dashboard

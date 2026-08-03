@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Plus, Trash2, Save, BookOpen, Layers, Loader2, ChevronLeft } from "lucide-react";
+import axios from "axios";
+import { Plus, Trash2, Save, Layers, Loader2, ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { API_BASE_URL } from "../../services/BaseUrl";
 
@@ -7,72 +8,100 @@ export default function CreateSubjectForm() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   
-  // Levels available in the Ghana CCP curriculum
+  // Academic levels available in the Ghana CCP curriculum
   const levels = ["JHS 1", "JHS 2", "JHS 3"];
 
   const [formData, setFormData] = useState({
     name: "",
     level: "JHS 1",
-    strands: [{ title: "", subStrands: [""] }]
+    strands: [
+      { 
+        title: "", 
+        subStrands: [{ title: "", code: "" }] 
+      }
+    ]
   });
 
-  // --- Dynamic Handlers ---
+  // --- Strand Handlers ---
   const addStrand = () => {
-    setFormData({
-      ...formData,
-      strands: [...formData.strands, { title: "", subStrands: [""] }]
-    });
+    setFormData((prev) => ({
+      ...prev,
+      strands: [
+        ...prev.strands, 
+        { title: "", subStrands: [{ title: "", code: "" }] }
+      ]
+    }));
   };
 
   const removeStrand = (sIndex) => {
-    const newStrands = formData.strands.filter((_, i) => i !== sIndex);
-    setFormData({ ...formData, strands: newStrands });
+    setFormData((prev) => ({
+      ...prev,
+      strands: prev.strands.filter((_, i) => i !== sIndex)
+    }));
   };
 
   const updateStrandTitle = (sIndex, value) => {
-    const newStrands = [...formData.strands];
-    newStrands[sIndex].title = value;
-    setFormData({ ...formData, strands: newStrands });
+    const updatedStrands = [...formData.strands];
+    updatedStrands[sIndex].title = value;
+    setFormData({ ...formData, strands: updatedStrands });
   };
 
+  // --- Sub-Strand Handlers ---
   const addSubStrand = (sIndex) => {
-    const newStrands = [...formData.strands];
-    newStrands[sIndex].subStrands.push("");
-    setFormData({ ...formData, strands: newStrands });
+    const updatedStrands = [...formData.strands];
+    updatedStrands[sIndex].subStrands.push({ title: "", code: "" });
+    setFormData({ ...formData, strands: updatedStrands });
   };
 
   const removeSubStrand = (sIndex, subIndex) => {
-    const newStrands = [...formData.strands];
-    newStrands[sIndex].subStrands = newStrands[sIndex].subStrands.filter((_, i) => i !== subIndex);
-    setFormData({ ...formData, strands: newStrands });
+    const updatedStrands = [...formData.strands];
+    updatedStrands[sIndex].subStrands = updatedStrands[sIndex].subStrands.filter((_, i) => i !== subIndex);
+    setFormData({ ...formData, strands: updatedStrands });
   };
 
-  const updateSubStrand = (sIndex, subIndex, value) => {
-    const newStrands = [...formData.strands];
-    newStrands[sIndex].subStrands[subIndex] = value;
-    setFormData({ ...formData, strands: newStrands });
+  const updateSubStrand = (sIndex, subIndex, field, value) => {
+    const updatedStrands = [...formData.strands];
+    updatedStrands[sIndex].subStrands[subIndex][field] = value;
+    setFormData({ ...formData, strands: updatedStrands });
   };
 
+  // --- Form Submission ---
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Basic frontend validation
+    if (!formData.name.trim()) {
+      alert("Please enter a subject name.");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const res = await fetch(`${API_BASE_URL}subjects`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
-      });
+      // Clean empty sub-strand records before sending
+      const sanitizedPayload = {
+        ...formData,
+        name: formData.name.trim(),
+        strands: formData.strands.map((strand) => ({
+          title: strand.title.trim(),
+          subStrands: strand.subStrands
+            .filter((sub) => sub.title.trim() !== "")
+            .map((sub) => ({
+              title: sub.title.trim(),
+              code: sub.code.trim()
+            }))
+        }))
+      };
 
-      const data = await res.json();
-      if (res.ok) {
-        alert(`${formData.name} for ${formData.level} saved successfully!`);
+      const response = await axios.post(`${API_BASE_URL}subjects`, sanitizedPayload);
+
+      if (response.data.success) {
+        alert(`${formData.name} for ${formData.level} created successfully!`);
         navigate("/admindashboard");
-      } else {
-        alert(data.msg || "Error creating subject");
       }
     } catch (err) {
-      alert("Check your server connection.");
+      console.error("Error creating subject:", err);
+      alert(err.response?.data?.msg || "Failed to create subject. Please check connection.");
     } finally {
       setLoading(false);
     }
@@ -96,7 +125,7 @@ export default function CreateSubjectForm() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
               <div>
                 <h1 className="text-3xl font-black text-slate-900 uppercase italic tracking-tight">Curriculum Builder</h1>
-                <p className="text-slate-500 font-medium text-sm">Define subject scope and sequence.</p>
+                <p className="text-slate-500 font-medium text-sm">Define subject scope, strands, and sub-strands.</p>
               </div>
               
               <div className="flex bg-slate-100 p-1.5 rounded-2xl">
@@ -121,7 +150,7 @@ export default function CreateSubjectForm() {
             <input 
               type="text" 
               required
-              placeholder="e.g. Mathematics"
+              placeholder="e.g. Computing / Social Studies"
               className="w-full bg-slate-50 border-none rounded-2xl p-4 text-lg font-bold focus:ring-2 focus:ring-blue-500 transition-all outline-none"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -150,7 +179,7 @@ export default function CreateSubjectForm() {
                   <button 
                     type="button" 
                     onClick={() => removeStrand(sIndex)}
-                    className="absolute top-8 right-8 text-slate-200 hover:text-red-500 transition-colors"
+                    className="absolute top-8 right-8 text-slate-300 hover:text-rose-500 transition-colors"
                   >
                     <Trash2 size={20} />
                   </button>
@@ -162,7 +191,7 @@ export default function CreateSubjectForm() {
                     <input 
                       type="text" 
                       required
-                      placeholder="e.g. Strand 1: Number"
+                      placeholder="e.g. Strand 1: Patterns and Relations"
                       className="w-full bg-slate-50 border-none rounded-xl p-3 font-bold text-slate-700 outline-none focus:ring-1 focus:ring-blue-300"
                       value={strand.title}
                       onChange={(e) => updateStrandTitle(sIndex, e.target.value)}
@@ -172,31 +201,40 @@ export default function CreateSubjectForm() {
                   {/* Sub-strands */}
                   <div className="pl-6 border-l-2 border-slate-100 space-y-4">
                     <div className="flex items-center justify-between">
-                      <span className="text-[9px] font-black uppercase text-slate-300 tracking-widest">Sub-Strands</span>
+                      <span className="text-[9px] font-black uppercase text-slate-400 tracking-widest">Sub-Strands</span>
                       <button 
                         type="button" 
                         onClick={() => addSubStrand(sIndex)}
                         className="text-[9px] font-black uppercase text-blue-500 hover:underline"
                       >
-                        + Add Sub
+                        + Add Sub-Strand
                       </button>
                     </div>
 
                     {strand.subStrands.map((sub, subIndex) => (
-                      <div key={subIndex} className="flex gap-2">
+                      <div key={subIndex} className="flex gap-2 items-center">
+                        <input 
+                          type="text" 
+                          placeholder="Code (e.g. B7.1.1)"
+                          className="w-28 bg-slate-50 border border-slate-100 rounded-lg p-2 text-xs font-bold text-slate-600 outline-none focus:border-blue-300"
+                          value={sub.code}
+                          onChange={(e) => updateSubStrand(sIndex, subIndex, "code", e.target.value)}
+                        />
+
                         <input 
                           type="text" 
                           required
-                          placeholder={`Sub-strand ${subIndex + 1}`}
-                          className="flex-1 bg-white border border-slate-100 rounded-lg p-2 text-xs font-bold text-slate-600 outline-none focus:border-blue-200"
-                          value={sub}
-                          onChange={(e) => updateSubStrand(sIndex, subIndex, e.target.value)}
+                          placeholder={`Sub-strand ${subIndex + 1} Title`}
+                          className="flex-1 bg-white border border-slate-200 rounded-lg p-2 text-xs font-bold text-slate-700 outline-none focus:border-blue-400"
+                          value={sub.title}
+                          onChange={(e) => updateSubStrand(sIndex, subIndex, "title", e.target.value)}
                         />
+
                         {strand.subStrands.length > 1 && (
                           <button 
                             type="button" 
                             onClick={() => removeSubStrand(sIndex, subIndex)}
-                            className="text-slate-200 hover:text-red-400 p-1"
+                            className="text-slate-300 hover:text-rose-500 p-1 transition-colors"
                           >
                             <Trash2 size={14} />
                           </button>
@@ -216,7 +254,7 @@ export default function CreateSubjectForm() {
               className="w-full bg-blue-600 text-white py-6 rounded-[2rem] font-black uppercase tracking-widest shadow-2xl shadow-blue-200 hover:bg-slate-900 transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:bg-slate-300"
             >
               {loading ? <Loader2 className="animate-spin" /> : <Save size={20} />}
-              {loading ? "Saving..." : `Publish ${formData.name} - ${formData.level}`}
+              {loading ? "Publishing..." : `Publish ${formData.name || "Subject"} - ${formData.level}`}
             </button>
           </div>
 

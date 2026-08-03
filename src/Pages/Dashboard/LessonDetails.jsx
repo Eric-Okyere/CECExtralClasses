@@ -29,6 +29,15 @@ export default function LessonDetails() {
     fetchLesson();
   }, [id]);
 
+  // SAFE RENDER HELPER FOR OBJECTS OR STRINGS
+  const renderName = (val, fallback = "N/A") => {
+    if (!val) return fallback;
+    if (typeof val === "object" && val !== null) {
+      return val.name || val.title || val.level || fallback;
+    }
+    return String(val);
+  };
+
   if (loading) return (
     <div className="h-screen flex flex-col items-center justify-center bg-[#0F172A]">
       <Loader2 className="animate-spin text-blue-500 mb-6" size={50} />
@@ -119,12 +128,16 @@ export default function LessonDetails() {
                     <Hash size={12} /> Lesson {lesson.lessonNumber}
                   </span>
                 )}
-                <span className="px-4 py-2 md:px-5 md:py-2.5 bg-blue-50 text-blue-600 text-[8px] md:text-[9px] font-black uppercase rounded-full border border-blue-100 tracking-widest">
-                  {lesson.level}
-                </span>
-                <span className="px-4 py-2 md:px-5 md:py-2.5 bg-slate-50 text-slate-500 text-[8px] md:text-[9px] font-black uppercase rounded-full border border-slate-100 tracking-widest">
-                  {lesson.subject}
-                </span>
+                {lesson.level && (
+                  <span className="px-4 py-2 md:px-5 md:py-2.5 bg-blue-50 text-blue-600 text-[8px] md:text-[9px] font-black uppercase rounded-full border border-blue-100 tracking-widest">
+                    {renderName(lesson.level, "All Levels")}
+                  </span>
+                )}
+                {lesson.subject && (
+                  <span className="px-4 py-2 md:px-5 md:py-2.5 bg-slate-50 text-slate-500 text-[8px] md:text-[9px] font-black uppercase rounded-full border border-slate-100 tracking-widest">
+                    {renderName(lesson.subject, "Subject N/A")}
+                  </span>
+                )}
               </div>
 
               {/* Main Title: Lesson Name */}
@@ -134,13 +147,13 @@ export default function LessonDetails() {
 
               {/* Strand Name */}
               <p className="text-slate-400 font-black text-[10px] md:text-xs uppercase tracking-[0.25em] mb-4 md:mb-6">
-                Strand: <span className="text-slate-700">{lesson.strand}</span>
+                Strand: <span className="text-slate-700">{renderName(lesson.strand, "General Strand")}</span>
               </p>
 
               {/* Sub-strand */}
               <p className="text-blue-500 font-black text-xs md:text-lg uppercase tracking-[0.15em] md:tracking-[0.2em] mb-8 md:mb-12 flex items-center gap-3 md:gap-4">
                 <Layers size={window.innerWidth < 768 ? 16 : 20} className="shrink-0" />
-                {lesson.subStrand}
+                {renderName(lesson.subStrand, "General Sub-Strand")}
               </p>
               
               {/* Stats Grid */}
@@ -199,7 +212,7 @@ export default function LessonDetails() {
                   <Award className="text-blue-400" /> Assessment
                 </h3>
                 <span className="text-[10px] font-black bg-white/10 px-4 py-1 rounded-full text-blue-300">
-                  {lesson.quiz?.length} ITEMS
+                  {lesson.quiz?.length || 0} ITEMS
                 </span>
               </div>
               
@@ -267,15 +280,15 @@ export default function LessonDetails() {
 
 // SMALL HELPER COMPONENT FOR STATS
 function Stat({ icon, label, value }) {
-    return (
-        <div className="flex items-start gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center shadow-sm">
-                {icon}
-            </div>
-            <div>
-                <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">{label}</p>
-                <p className="text-2xl font-black text-slate-800 tracking-tighter">{value}</p>
-            </div>
-        </div>
-    )
+  return (
+    <div className="flex items-start gap-4">
+      <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center shadow-sm">
+        {icon}
+      </div>
+      <div>
+        <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest">{label}</p>
+        <p className="text-2xl font-black text-slate-800 tracking-tighter">{value}</p>
+      </div>
+    </div>
+  );
 }

@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { 
   Edit3, 
   GraduationCap, 
-  Calendar, 
   ListChecks, 
   AlertCircle, 
   Eye, 
@@ -12,7 +11,7 @@ import {
   Filter, 
   XCircle,
   CirclePlus,
-  
+  Trash2
 } from 'lucide-react';
 import { API_BASE_URL } from '../../services/BaseUrl';
 
@@ -21,35 +20,43 @@ const AllSubjects = () => {
   const [filteredSubjects, setFilteredSubjects] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  
   // Search & Filter States
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedLevel, setSelectedLevel] = useState('All Levels');
 
   const navigate = useNavigate();
 
+  const fetchSubjects = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${API_BASE_URL}subjects`);
+      const data = response.data.data || [];
+      setSubjects(data);
+      setFilteredSubjects(data);
+    } catch (error) {
+      console.error("Error fetching subjects:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchSubjects = async () => {
-      try {
-        const response = await axios.get(`${API_BASE_URL}subjects`);
-        setSubjects(response.data.data);
-        setFilteredSubjects(response.data.data);
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching subjects:", error);
-        setLoading(false);
-      }
-    };
     fetchSubjects();
   }, []);
+
+  // Dynamically extract unique academic levels from fetched subjects
+  const availableLevels = useMemo(() => {
+    const levels = subjects.map(s => s.level).filter(Boolean);
+    return ['All Levels', ...Array.from(new Set(levels))];
+  }, [subjects]);
 
   // Handle Filtering Logic
   useEffect(() => {
     let result = subjects;
 
-    if (searchTerm) {
+    if (searchTerm.trim()) {
       result = result.filter(sub => 
-        sub.name.toLowerCase().includes(searchTerm.toLowerCase())
+        sub.name?.toLowerCase().includes(searchTerm.toLowerCase().trim())
       );
     }
 
@@ -59,6 +66,19 @@ const AllSubjects = () => {
 
     setFilteredSubjects(result);
   }, [searchTerm, selectedLevel, subjects]);
+
+  const handleDeleteSubject = async (id, name) => {
+    if (!window.confirm(`Are you sure you want to delete "${name}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await axios.delete(`${API_BASE_URL}subjects/${id}`);
+      setSubjects(prev => prev.filter(sub => sub._id !== id));
+    } catch (error) {
+      alert(error.response?.data?.msg || "Failed to delete subject");
+    }
+  };
 
   if (loading) return (
     <div className="flex flex-col items-center justify-center min-h-[60vh]">
@@ -78,16 +98,16 @@ const AllSubjects = () => {
           <p className="text-gray-500 mt-1 font-medium">Ghana Common Core Programme Management</p>
         </div>
 
+        <div className="flex items-center gap-4">
           <button 
-             onClick={() => navigate("/create-subject")}
-             className="flex items-center gap-3 bg-white border border-slate-200 px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest text-slate-600 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all shadow-sm active:scale-95"
-            >
-                <CirclePlus size={16} />
-                Create Subject
-            </button>
+            onClick={() => navigate("/create-subject")}
+            className="flex items-center gap-3 bg-white border border-slate-200 px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest text-slate-600 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all shadow-sm active:scale-95"
+          >
+            <CirclePlus size={16} />
+            Create Subject
+          </button>
 
-        <div className="flex flex-col items-end">
-          <span className="px-4 py-1.5 bg-blue-50 text-blue-700 text-xs font-black rounded-full uppercase tracking-widest shadow-sm">
+          <span className="px-4 py-3 bg-blue-50 text-blue-700 text-xs font-black rounded-2xl uppercase tracking-widest shadow-sm">
             {filteredSubjects.length} of {subjects.length} Subjects
           </span>
         </div>
@@ -113,10 +133,9 @@ const AllSubjects = () => {
             value={selectedLevel}
             onChange={(e) => setSelectedLevel(e.target.value)}
           >
-            <option value="All Levels">All Levels</option>
-            <option value="JHS 1">JHS 1</option>
-            <option value="JHS 2">JHS 2</option>
-            <option value="JHS 3">JHS 3</option>
+            {availableLevels.map(lvl => (
+              <option key={lvl} value={lvl}>{lvl}</option>
+            ))}
           </select>
         </div>
       </div>
@@ -147,7 +166,7 @@ const AllSubjects = () => {
                 </h3>
 
                 <div className="space-y-2 mb-8">
-                   {subject.strands.length > 0 ? (
+                  {(subject.strands?.length || 0) > 0 ? (
                     <div className="inline-flex items-center text-emerald-600 px-2.5 py-1 bg-emerald-50 rounded-md text-[10px] font-black uppercase">
                       <ListChecks size={12} className="mr-1.5" />
                       {subject.strands.length} Strands Ready
@@ -166,19 +185,29 @@ const AllSubjects = () => {
                 <div className="flex flex-col gap-3">
                   <button 
                     onClick={() => navigate(`/subject-details/${subject._id}`)}
-                    className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-3.5 rounded-2xl font-bold text-sm hover:bg-blue-700 shadow-lg shadow-blue-100 transition-all active:scale-95"
+                    className="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-3 rounded-2xl font-bold text-sm hover:bg-blue-700 shadow-lg shadow-blue-100 transition-all active:scale-95"
                   >
                     <Eye size={18} />
                     View Details
                   </button>
                   
-                  <button 
-                    onClick={() => navigate(`/edit-subject/${subject._id}`)}
-                    className="w-full flex items-center justify-center gap-2 bg-gray-50 text-gray-600 py-3.5 rounded-2xl font-bold text-sm hover:bg-gray-100 transition-all border border-transparent hover:border-gray-200"
-                  >
-                    <Edit3 size={18} />
-                    Edit Subject
-                  </button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button 
+                      onClick={() => navigate(`/edit-subject/${subject._id}`)}
+                      className="flex items-center justify-center gap-2 bg-gray-50 text-gray-600 py-3 rounded-2xl font-bold text-sm hover:bg-gray-100 transition-all border border-transparent hover:border-gray-200"
+                    >
+                      <Edit3 size={16} />
+                      Edit
+                    </button>
+
+                    <button 
+                      onClick={() => handleDeleteSubject(subject._id, subject.name)}
+                      className="flex items-center justify-center gap-2 bg-rose-50 text-rose-600 py-3 rounded-2xl font-bold text-sm hover:bg-rose-100 transition-all border border-transparent"
+                    >
+                      <Trash2 size={16} />
+                      Delete
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

@@ -16,8 +16,9 @@ import {
   FolderTree
 } from "lucide-react";
 
-const ManageLessons = () => {
+export default function ManageLessons() {
   const [lessons, setLessons] = useState([]);
+  const [subjectsTree, setSubjectsTree] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
@@ -31,61 +32,125 @@ const ManageLessons = () => {
 
   const levels = ["JHS 1", "JHS 2", "JHS 3"];
 
+  // Fetch Lessons and Subjects Taxonomy Tree
   useEffect(() => {
-    const fetchLessons = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch(`${API_BASE_URL}lessons`);
-        const json = await response.json();
-        if (json.success) setLessons(json.data);
+        const [lessonsRes, subjectsRes] = await Promise.all([
+          fetch(`${API_BASE_URL}lessons`),
+          fetch(`${API_BASE_URL}subjects`)
+        ]);
+
+        const lessonsJson = await lessonsRes.json();
+        const subjectsJson = await subjectsRes.json();
+
+        if (lessonsJson.success) setLessons(lessonsJson.data || []);
+        if (subjectsJson.success) setSubjectsTree(subjectsJson.data || []);
       } catch (err) {
-        console.error("Error fetching lessons:", err);
+        console.error("Error fetching data:", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchLessons();
+    fetchData();
   }, []);
 
-  // Extract unique subjects
-  const subjectsList = useMemo(() => {
-    const list = lessons.map((l) => l.subject).filter(Boolean);
-    return [...new Set(list)];
-  }, [lessons]);
+  // --- LOOKUP MAPS FOR RAW OBJECT IDs ---
+  const taxonomyLookups = useMemo(() => {
+    const subjectsMap = new Map();
+    const strandsMap = new Map();
+    const subStrandsMap = new Map();
 
-  // Extract unique strands dynamically (dependent on subject selection)
+    subjectsTree.forEach((sub) => {
+      if (sub._id) subjectsMap.set(String(sub._id), sub.name || sub.title);
+
+      if (Array.isArray(sub.strands)) {
+        sub.strands.forEach((st) => {
+          if (st._id) strandsMap.set(String(st._id), st.title || st.name);
+
+          if (Array.isArray(st.subStrands)) {
+            st.subStrands.forEach((sst) => {
+              if (typeof sst === "object" && sst !== null) {
+                if (sst._id) subStrandsMap.set(String(sst._id), sst.title || sst.name);
+              }
+            });
+          }
+        });
+      }
+    });
+
+    return { subjectsMap, strandsMap, subStrandsMap };
+  }, [subjectsTree]);
+
+  // SAFELY EXTRACT HUMAN-READABLE NAMES
+  const getSubjectName = (lesson) => {
+    if (!lesson?.subject) return "Unassigned Subject";
+    if (typeof lesson.subject === "object" && lesson.subject !== null) {
+      return lesson.subject.name || lesson.subject.title || "Unassigned Subject";
+    }
+    return taxonomyLookups.subjectsMap.get(String(lesson.subject)) || lesson.subject;
+  };
+
+  const getStrandName = (lesson) => {
+    if (!lesson?.strand) return "Uncategorized Strand";
+    if (typeof lesson.strand === "object" && lesson.strand !== null) {
+      return lesson.strand.title || lesson.strand.name || "Uncategorized Strand";
+    }
+    return taxonomyLookups.strandsMap.get(String(lesson.strand)) || lesson.strand;
+  };
+
+  const getSubStrandName = (lesson) => {
+    if (!lesson?.subStrand) return "General Sub-Strand";
+    if (typeof lesson.subStrand === "object" && lesson.subStrand !== null) {
+      return lesson.subStrand.title || lesson.subStrand.name || "General Sub-Strand";
+    }
+    return taxonomyLookups.subStrandsMap.get(String(lesson.subStrand)) || lesson.subStrand;
+  };
+
+  // Extract unique subjects dynamically
+  const subjectsList = useMemo(() => {
+    const list = lessons.map((l) => getSubjectName(l)).filter(Boolean);
+    return [...new Set(list)];
+  }, [lessons, taxonomyLookups]);
+
+  // Extract unique strands dynamically
   const strandsList = useMemo(() => {
     const filtered = selectedSubject === "ALL" 
       ? lessons 
-      : lessons.filter(l => l.subject === selectedSubject);
-    const list = filtered.map((l) => l.strand).filter(Boolean);
+      : lessons.filter(l => getSubjectName(l) === selectedSubject);
+    const list = filtered.map((l) => getStrandName(l)).filter(Boolean);
     return [...new Set(list)];
-  }, [lessons, selectedSubject]);
+  }, [lessons, selectedSubject, taxonomyLookups]);
 
-  // Extract unique sub-strands dynamically (dependent on subject & strand selection)
+  // Extract unique sub-strands dynamically
   const subStrandsList = useMemo(() => {
     const filtered = lessons.filter(l => {
-      const matchSubj = selectedSubject === "ALL" || l.subject === selectedSubject;
-      const matchStrand = selectedStrand === "ALL" || l.strand === selectedStrand;
+      const matchSubj = selectedSubject === "ALL" || getSubjectName(l) === selectedSubject;
+      const matchStrand = selectedStrand === "ALL" || getStrandName(l) === selectedStrand;
       return matchSubj && matchStrand;
     });
-    const list = filtered.map((l) => l.subStrand).filter(Boolean);
+    const list = filtered.map((l) => getSubStrandName(l)).filter(Boolean);
     return [...new Set(list)];
-  }, [lessons, selectedSubject, selectedStrand]);
+  }, [lessons, selectedSubject, selectedStrand, taxonomyLookups]);
 
   // Filter & Sort Logic
   const filteredAndSortedLessons = useMemo(() => {
     return lessons
       .filter((lesson) => {
+        const subject = getSubjectName(lesson);
+        const strand = getStrandName(lesson);
+        const subStrand = getSubStrandName(lesson);
+
         const matchesSearch =
           !searchTerm ||
           (lesson.lessonName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (lesson.subject || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (lesson.strand || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (lesson.subStrand || "").toLowerCase().includes(searchTerm.toLowerCase());
+          subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          strand.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          subStrand.toLowerCase().includes(searchTerm.toLowerCase());
 
-        const matchesSubject = selectedSubject === "ALL" || lesson.subject === selectedSubject;
-        const matchesStrand = selectedStrand === "ALL" || lesson.strand === selectedStrand;
-        const matchesSubStrand = selectedSubStrand === "ALL" || lesson.subStrand === selectedSubStrand;
+        const matchesSubject = selectedSubject === "ALL" || subject === selectedSubject;
+        const matchesStrand = selectedStrand === "ALL" || strand === selectedStrand;
+        const matchesSubStrand = selectedSubStrand === "ALL" || subStrand === selectedSubStrand;
         const matchesLevel = selectedLevel === "ALL" || lesson.level === selectedLevel;
 
         return matchesSearch && matchesSubject && matchesStrand && matchesSubStrand && matchesLevel;
@@ -108,14 +173,14 @@ const ManageLessons = () => {
             return 0;
         }
       });
-  }, [lessons, searchTerm, selectedSubject, selectedStrand, selectedSubStrand, selectedLevel, sortBy]);
+  }, [lessons, searchTerm, selectedSubject, selectedStrand, selectedSubStrand, selectedLevel, sortBy, taxonomyLookups]);
 
   // Group lessons by Strand -> Sub-Strand
   const groupedLessons = useMemo(() => {
     const groups = {};
     filteredAndSortedLessons.forEach((lesson) => {
-      const strandKey = lesson.strand || "Uncategorized Strand";
-      const subStrandKey = lesson.subStrand || "General Sub-Strand";
+      const strandKey = getStrandName(lesson);
+      const subStrandKey = getSubStrandName(lesson);
 
       if (!groups[strandKey]) {
         groups[strandKey] = {};
@@ -126,7 +191,7 @@ const ManageLessons = () => {
       groups[strandKey][subStrandKey].push(lesson);
     });
     return groups;
-  }, [filteredAndSortedLessons]);
+  }, [filteredAndSortedLessons, taxonomyLookups]);
 
   const handleDelete = async (lessonId) => {
     if (!window.confirm("Are you sure you want to delete this lesson?")) return;
@@ -137,7 +202,6 @@ const ManageLessons = () => {
       const json = await response.json();
       if (json.success) {
         setLessons(lessons.filter((l) => l._id !== lessonId));
-        alert("Lesson deleted successfully!");
       } else {
         alert("Could not delete lesson.");
       }
@@ -189,7 +253,7 @@ const ManageLessons = () => {
         </div>
         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
           <p className="text-gray-500 text-xs uppercase font-semibold">Subjects</p>
-          <p className="text-2xl font-bold">{[...new Set(lessons.map(l => l.subject))].length}</p>
+          <p className="text-2xl font-bold">{subjectsList.length}</p>
         </div>
         <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
           <p className="text-gray-500 text-xs uppercase font-semibold">Active Quizzes</p>
@@ -200,7 +264,6 @@ const ManageLessons = () => {
       {/* Control Panel: Search, Filters & Sorting */}
       <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-200 mb-6 flex flex-col gap-4">
         <div className="flex flex-col md:flex-row gap-4 justify-between items-center">
-          {/* Search Bar */}
           <div className="relative w-full md:w-1/3">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
             <input
@@ -212,7 +275,6 @@ const ManageLessons = () => {
             />
           </div>
 
-          {/* Reset Filters Button */}
           {(searchTerm || selectedSubject !== "ALL" || selectedStrand !== "ALL" || selectedSubStrand !== "ALL" || selectedLevel !== "ALL" || sortBy !== "lessonNumber-asc") && (
             <button
               onClick={clearFilters}
@@ -225,7 +287,6 @@ const ManageLessons = () => {
 
         {/* Filter Dropdowns Grid */}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3 pt-2 border-t border-gray-100">
-          {/* Subject Filter */}
           <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-sm">
             <Filter size={14} className="text-gray-500 shrink-0" />
             <select
@@ -244,7 +305,6 @@ const ManageLessons = () => {
             </select>
           </div>
 
-          {/* Strand Filter */}
           <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-sm">
             <FolderTree size={14} className="text-gray-500 shrink-0" />
             <select
@@ -262,7 +322,6 @@ const ManageLessons = () => {
             </select>
           </div>
 
-          {/* Sub-Strand Filter */}
           <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-sm">
             <Layers size={14} className="text-gray-500 shrink-0" />
             <select
@@ -277,7 +336,6 @@ const ManageLessons = () => {
             </select>
           </div>
 
-          {/* Level Filter */}
           <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-sm">
             <select
               value={selectedLevel}
@@ -291,7 +349,6 @@ const ManageLessons = () => {
             </select>
           </div>
 
-          {/* Sort By */}
           <div className="flex items-center gap-1.5 bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5 text-sm">
             <ArrowUpDown size={14} className="text-gray-500 shrink-0" />
             <select
@@ -310,12 +367,10 @@ const ManageLessons = () => {
         </div>
       </div>
 
-      {/* Result Counter */}
       <div className="mb-6 text-xs font-semibold uppercase text-gray-500 tracking-wider">
         Showing {filteredAndSortedLessons.length} of {lessons.length} Lessons
       </div>
 
-      {/* Grouped Lessons Output */}
       {filteredAndSortedLessons.length === 0 ? (
         <div className="bg-white rounded-xl p-12 text-center border border-gray-200">
           <BookOpen size={48} className="mx-auto text-gray-300 mb-3" />
@@ -329,7 +384,6 @@ const ManageLessons = () => {
         <div className="space-y-10">
           {Object.keys(groupedLessons).map((strandName) => (
             <div key={strandName} className="space-y-6">
-              {/* STRAND HEADER */}
               <div className="flex items-center gap-2 border-b-2 border-blue-600 pb-2">
                 <FolderTree className="text-blue-600" size={20} />
                 <h2 className="text-lg font-black text-gray-900 uppercase tracking-wide">
@@ -337,7 +391,6 @@ const ManageLessons = () => {
                 </h2>
               </div>
 
-              {/* SUB-STRANDS & LESSON CARDS */}
               {Object.keys(groupedLessons[strandName]).map((subStrandName) => (
                 <div key={subStrandName} className="pl-2 md:pl-4 space-y-4">
                   <div className="flex items-center gap-2 text-slate-600 bg-slate-100 px-3 py-1.5 rounded-lg w-fit">
@@ -356,9 +409,11 @@ const ManageLessons = () => {
                         <div className="p-5">
                           <div className="flex justify-between items-center mb-4">
                             <div className="flex items-center gap-2">
-                              <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded uppercase">
-                                {lesson.level}
-                              </span>
+                              {lesson.level && (
+                                <span className="bg-blue-100 text-blue-800 text-xs font-semibold px-2.5 py-0.5 rounded uppercase">
+                                  {lesson.level}
+                                </span>
+                              )}
                               {lesson.lessonNumber && (
                                 <span className="bg-slate-900 text-white text-xs font-black px-2 py-0.5 rounded flex items-center gap-0.5">
                                   <Hash size={10} /> {lesson.lessonNumber}
@@ -372,7 +427,7 @@ const ManageLessons = () => {
                             {lesson.lessonName || "Untitled Lesson"}
                           </h2>
                           <div className="flex items-center gap-1.5 text-xs text-gray-400 font-bold uppercase tracking-wider mb-4">
-                            <span>{lesson.subject}</span>
+                            <span>{getSubjectName(lesson)}</span>
                           </div>
 
                           <div className="flex items-center gap-4 text-sm text-gray-600">
@@ -416,6 +471,4 @@ const ManageLessons = () => {
       )}
     </div>
   );
-};
-
-export default ManageLessons;
+}

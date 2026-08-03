@@ -1,110 +1,264 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Save, Plus, Trash2, ArrowLeft, Loader2, List } from 'lucide-react';
+import { Save, Plus, Trash2, ArrowLeft, Loader2, List, BookOpen, Layers } from 'lucide-react';
 import { API_BASE_URL } from '../../services/BaseUrl';
 
 const EditSubjectForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [subject, setSubject] = useState({ name: '', level: '', strands: [] });
 
   useEffect(() => {
     const fetchSubject = async () => {
       try {
         const res = await axios.get(`${API_BASE_URL}subjects/${id}`);
-        setSubject(res.data.data);
-        setLoading(false);
+        const data = res.data.data;
+
+        // Safely format data into initial component state
+        const formattedSubject = {
+          ...data,
+          name: data?.name || '',
+          level: data?.level || '',
+          strands: (data?.strands || []).map((strand) => ({
+            ...strand,
+            _tempId: strand._id || crypto.randomUUID(),
+            title: strand?.title || '',
+            subStrands: (strand?.subStrands || []).map((ss) => {
+              if (typeof ss === 'string') {
+                return { _id: ss, _tempId: ss, title: '', code: '' };
+              }
+              return {
+                ...ss,
+                _tempId: ss._id || crypto.randomUUID(),
+                title: ss?.title || '',
+                code: ss?.code || ''
+              };
+            })
+          }))
+        };
+
+        setSubject(formattedSubject);
       } catch (err) {
         alert("Could not load subject data");
         navigate('/all-subjects');
+      } finally {
+        setLoading(false);
       }
     };
     fetchSubject();
   }, [id, navigate]);
 
-  const handleStrandChange = (sIndex, field, value) => {
-    const updatedStrands = [...subject.strands];
-    updatedStrands[sIndex][field] = value;
-    setSubject({ ...subject, strands: updatedStrands });
+  // Top-level Subject fields (Name, Level)
+  const handleSubjectChange = (field, value) => {
+    setSubject((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSubStrandChange = (sIndex, ssIndex, value) => {
-    const updatedStrands = [...subject.strands];
-    updatedStrands[sIndex].subStrands[ssIndex] = value;
-    setSubject({ ...subject, strands: updatedStrands });
+  // Immutable Strand title update
+  const handleStrandChange = (sIndex, field, value) => {
+    setSubject((prev) => ({
+      ...prev,
+      strands: prev.strands.map((strand, i) =>
+        i === sIndex ? { ...strand, [field]: value } : strand
+      )
+    }));
+  };
+
+  // Immutable SubStrand update (Title, Code)
+  const handleSubStrandChange = (sIndex, ssIndex, field, value) => {
+    setSubject((prev) => ({
+      ...prev,
+      strands: prev.strands.map((strand, i) => {
+        if (i !== sIndex) return strand;
+        return {
+          ...strand,
+          subStrands: strand.subStrands.map((ss, j) =>
+            j === ssIndex ? { ...ss, [field]: value } : ss
+          )
+        };
+      })
+    }));
   };
 
   const addStrand = () => {
-    setSubject({
-      ...subject,
-      strands: [...subject.strands, { title: '', subStrands: [''] }]
-    });
+    setSubject((prev) => ({
+      ...prev,
+      strands: [
+        ...prev.strands,
+        {
+          _tempId: crypto.randomUUID(),
+          title: '',
+          subStrands: [{ _tempId: crypto.randomUUID(), title: '', code: '' }]
+        }
+      ]
+    }));
   };
 
   const addSubStrand = (sIndex) => {
-    const updatedStrands = [...subject.strands];
-    updatedStrands[sIndex].subStrands.push('');
-    setSubject({ ...subject, strands: updatedStrands });
+    setSubject((prev) => ({
+      ...prev,
+      strands: prev.strands.map((strand, i) => {
+        if (i !== sIndex) return strand;
+        return {
+          ...strand,
+          subStrands: [
+            ...(strand.subStrands || []),
+            { _tempId: crypto.randomUUID(), title: '', code: '' }
+          ]
+        };
+      })
+    }));
   };
 
   const removeStrand = (sIndex) => {
     if (window.confirm("Are you sure you want to delete this entire Strand?")) {
-      const updatedStrands = subject.strands.filter((_, i) => i !== sIndex);
-      setSubject({ ...subject, strands: updatedStrands });
+      setSubject((prev) => ({
+        ...prev,
+        strands: prev.strands.filter((_, i) => i !== sIndex)
+      }));
     }
   };
 
   const removeSubStrand = (sIndex, ssIndex) => {
-    const updatedStrands = [...subject.strands];
-    updatedStrands[sIndex].subStrands = updatedStrands[sIndex].subStrands.filter((_, i) => i !== ssIndex);
-    setSubject({ ...subject, strands: updatedStrands });
+    setSubject((prev) => ({
+      ...prev,
+      strands: prev.strands.map((strand, i) => {
+        if (i !== sIndex) return strand;
+        return {
+          ...strand,
+          subStrands: strand.subStrands.filter((_, j) => j !== ssIndex)
+        };
+      })
+    }));
   };
 
   const handleUpdate = async (e) => {
     e.preventDefault();
+    setSubmitting(true);
+
     try {
-      await axios.patch(`${API_BASE_URL}subjects/${id}/update`, subject);
-      alert("Curriculum updated successfully!");
+      // 1. First, create any new sub-strands in the database so they get real ObjectIds
+      const updatedStrands = await Promise.all(
+        subject.strands.map(async (strand) => {
+          const processedSubStrands = await Promise.all(
+            (strand.subStrands || []).map(async (ss) => {
+              // Existing sub-strand with a MongoDB ObjectId
+              if (ss._id && ss._id.length === 24) {
+                return ss._id;
+              }
+
+              // New sub-strand: persist to database first
+              if (ss.title.trim()) {
+                const res = await axios.post(
+                  `${API_BASE_URL}subjects/${id}/strands/${strand._id || 'temp'}/substrands`,
+                  { title: ss.title, code: ss.code }
+                );
+                return res.data?.data?._id || ss._id;
+              }
+              return null;
+            })
+          );
+
+          return {
+            ...(strand._id ? { _id: strand._id } : {}),
+            title: strand.title,
+            subStrands: processedSubStrands.filter(Boolean)
+          };
+        })
+      );
+
+      // 2. Prepare payload matching Mongoose schema expectations
+      const payload = {
+        name: subject.name.trim(),
+        level: subject.level.trim(),
+        strands: updatedStrands
+      };
+
+      // 3. Update Subject
+      await axios.put(`${API_BASE_URL}subjects/${id}`, payload);
+      alert("Subject updated successfully!");
       navigate('/all-subjects');
     } catch (err) {
-      alert(err.response?.data?.msg || "Update failed");
+      alert(err.response?.data?.msg || "Update failed. Check backend logs.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
-  if (loading) return <div className="flex justify-center p-20"><Loader2 className="animate-spin text-blue-600" size={40} /></div>;
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-[400px]">
+        <Loader2 className="animate-spin text-blue-600" size={40} />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-5xl mx-auto p-6">
-      <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-gray-500 hover:text-gray-800 mb-6 transition font-medium">
-        <ArrowLeft size={20} /> All Subjects
+      <button 
+        onClick={() => navigate(-1)} 
+        className="flex items-center gap-2 text-gray-500 hover:text-gray-800 mb-6 transition font-medium"
+      >
+        <ArrowLeft size={20} /> Back to Subjects
       </button>
 
       <form onSubmit={handleUpdate} className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
-        {/* Header Section */}
-        <div className="bg-gradient-to-r from-gray-50 to-white p-8 border-b border-gray-100">
-          <div className="flex items-center gap-3 mb-2">
-            <List className="text-blue-600" size={24} />
-            <h2 className="text-3xl font-black text-gray-900 uppercase tracking-tight">{subject.name}</h2>
+        {/* Subject Info Section */}
+        <div className="bg-gradient-to-r from-gray-50 to-white p-8 border-b border-gray-100 space-y-6">
+          <div className="flex items-center gap-3">
+            <List className="text-blue-600" size={28} />
+            <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tight">Edit Subject</h2>
           </div>
-          <span className="inline-block px-4 py-1 bg-blue-600 text-white rounded-lg text-xs font-black tracking-widest uppercase">
-            {subject.level}
-          </span>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-2 space-y-2">
+              <label className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                <BookOpen size={14} /> Subject Name
+              </label>
+              <input 
+                type="text"
+                className="w-full bg-white p-3.5 rounded-2xl border border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-50 outline-none text-lg font-bold text-gray-800 transition-all shadow-sm"
+                value={subject.name}
+                onChange={(e) => handleSubjectChange('name', e.target.value)}
+                placeholder="e.g., Integrated Science"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                <Layers size={14} /> Level
+              </label>
+              <input 
+                type="text"
+                className="w-full bg-white p-3.5 rounded-2xl border border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-50 outline-none text-lg font-bold text-gray-800 transition-all shadow-sm"
+                value={subject.level}
+                onChange={(e) => handleSubjectChange('level', e.target.value)}
+                placeholder="e.g., JHS 1"
+                required
+              />
+            </div>
+          </div>
         </div>
 
+        {/* Dynamic Strands & Sub-Strands */}
         <div className="p-8 space-y-10">
           <div className="space-y-8">
             <div className="flex justify-between items-center border-b pb-4">
-              <h3 className="text-xl font-bold text-gray-800">Curriculum Content</h3>
-              <button type="button" onClick={addStrand} className="flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-blue-600 transition shadow-lg shadow-gray-200">
+              <h3 className="text-xl font-bold text-gray-800">Strands & Sub-Strands</h3>
+              <button 
+                type="button" 
+                onClick={addStrand} 
+                className="flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 rounded-xl text-sm font-bold hover:bg-blue-600 transition shadow-lg shadow-gray-200"
+              >
                 <Plus size={18} /> New Strand
               </button>
             </div>
 
             {subject.strands.map((strand, sIndex) => (
-              <div key={sIndex} className="p-8 border border-gray-100 rounded-[2rem] bg-gray-50/30 relative hover:border-blue-100 transition-all">
-                {/* Delete Strand Button */}
+              <div key={strand._tempId} className="p-8 border border-gray-100 rounded-[2rem] bg-gray-50/30 relative hover:border-blue-100 transition-all">
                 <button 
                   type="button" 
                   onClick={() => removeStrand(sIndex)}
@@ -114,7 +268,6 @@ const EditSubjectForm = () => {
                   <Trash2 size={20} />
                 </button>
 
-                {/* Strand Number & Title */}
                 <div className="mb-8">
                   <label className="text-[10px] font-black text-blue-600 uppercase tracking-[0.2em] mb-3 block">
                     Strand {sIndex + 1}
@@ -129,51 +282,69 @@ const EditSubjectForm = () => {
                   />
                 </div>
 
-                {/* Sub-strands List */}
-                <div className="ml-4 md:ml-10 space-y-4">
+                <div className="ml-2 md:ml-6 space-y-4">
                   <label className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] block mb-4">
                     Sub-strands for Strand {sIndex + 1}
                   </label>
                   
                   {strand.subStrands.map((ss, ssIndex) => (
-                    <div key={ssIndex} className="flex items-center gap-4 group">
-                      <div className="flex-shrink-0 w-10 h-10 bg-white border border-gray-100 rounded-xl flex items-center justify-center text-[10px] font-black text-gray-400 shadow-sm group-hover:text-blue-600 group-hover:border-blue-100 transition-all">
+                    <div key={ss._tempId} className="flex flex-col md:flex-row items-center gap-3 bg-white p-3 rounded-2xl border border-gray-100 shadow-sm">
+                      <div className="flex-shrink-0 w-10 h-10 bg-gray-50 border border-gray-100 rounded-xl flex items-center justify-center text-[10px] font-black text-gray-400">
                         {sIndex + 1}.{ssIndex + 1}
                       </div>
+
                       <input 
                         type="text"
-                        placeholder={`Enter Sub-strand ${ssIndex + 1} detail...`}
-                        className="flex-1 bg-white p-3 rounded-xl border border-gray-100 focus:border-blue-500 focus:ring-4 focus:ring-blue-50 outline-none text-sm font-medium transition-all shadow-sm"
-                        value={ss}
-                        onChange={(e) => handleSubStrandChange(sIndex, ssIndex, e.target.value)}
+                        placeholder="Code (e.g., B7.1.1)"
+                        className="w-full md:w-32 bg-gray-50/50 p-2.5 rounded-xl border border-gray-100 focus:border-blue-500 outline-none text-xs font-bold transition-all"
+                        value={ss.code || ''}
+                        onChange={(e) => handleSubStrandChange(sIndex, ssIndex, 'code', e.target.value)}
+                      />
+
+                      <input 
+                        type="text"
+                        placeholder={`Enter Sub-strand ${ssIndex + 1} title...`}
+                        className="flex-1 w-full bg-gray-50/50 p-2.5 rounded-xl border border-gray-100 focus:border-blue-500 outline-none text-sm font-medium transition-all"
+                        value={ss.title || ''}
+                        onChange={(e) => handleSubStrandChange(sIndex, ssIndex, 'title', e.target.value)}
                         required
                       />
-                      {strand.subStrands.length > 1 && (
-                        <button 
-                          type="button" 
-                          onClick={() => removeSubStrand(sIndex, ssIndex)}
-                          className="text-gray-300 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      )}
+
+                      <button 
+                        type="button" 
+                        onClick={() => removeSubStrand(sIndex, ssIndex)}
+                        className="text-gray-300 hover:text-rose-500 transition-all p-2"
+                        title="Remove Sub-strand"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
                   ))}
                   
                   <button 
                     type="button" 
                     onClick={() => addSubStrand(sIndex)} 
-                    className="flex items-center gap-2 text-xs font-black text-blue-600 hover:text-blue-800 mt-6 ml-14 uppercase tracking-widest transition-colors"
+                    className="flex items-center gap-2 text-xs font-black text-blue-600 hover:text-blue-800 mt-4 ml-2 uppercase tracking-widest transition-colors"
                   >
-                    <Plus size={14} /> Add Sub-strand {sIndex + 1}.{strand.subStrands.length + 1}
+                    <Plus size={14} /> Add Sub-strand
                   </button>
                 </div>
               </div>
             ))}
           </div>
 
-          <button type="submit" className="w-full flex items-center justify-center gap-3 py-5 bg-blue-600 text-white rounded-2xl font-black text-lg hover:bg-blue-700 shadow-xl shadow-blue-100 transition-all active:scale-[0.99] uppercase tracking-widest">
-            <Save size={24} /> Save {subject.name} Updates
+          <button 
+            type="submit" 
+            disabled={submitting}
+            className="w-full flex items-center justify-center gap-3 py-5 bg-blue-600 text-white rounded-2xl font-black text-lg hover:bg-blue-700 disabled:opacity-50 shadow-xl shadow-blue-100 transition-all active:scale-[0.99] uppercase tracking-widest"
+          >
+            {submitting ? (
+              <Loader2 className="animate-spin" size={24} />
+            ) : (
+              <>
+                <Save size={24} /> Save {subject.name || 'Subject'} Updates
+              </>
+            )}
           </button>
         </div>
       </form>
