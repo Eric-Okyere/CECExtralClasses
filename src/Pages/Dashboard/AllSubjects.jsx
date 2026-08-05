@@ -26,13 +26,19 @@ const AllSubjects = () => {
 
   const navigate = useNavigate();
 
+  // Ensure trailing slash on API base URL
+  const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL : `${API_BASE_URL}/`;
+
   const fetchSubjects = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${API_BASE_URL}subjects`);
-      const data = response.data.data || [];
-      setSubjects(data);
-      setFilteredSubjects(data);
+      const token = localStorage.getItem("token");
+      const response = await axios.get(`${baseUrl}subjects`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
+      const data = response.data.data || response.data || [];
+      setSubjects(Array.isArray(data) ? data : []);
+      setFilteredSubjects(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error fetching subjects:", error);
     } finally {
@@ -44,10 +50,11 @@ const AllSubjects = () => {
     fetchSubjects();
   }, []);
 
-  // Dynamically extract unique academic levels from fetched subjects
+  // Dynamically extract and sort unique academic levels from fetched subjects
   const availableLevels = useMemo(() => {
     const levels = subjects.map(s => s.level).filter(Boolean);
-    return ['All Levels', ...Array.from(new Set(levels))];
+    const sortedUniqueLevels = Array.from(new Set(levels)).sort();
+    return ['All Levels', ...sortedUniqueLevels];
   }, [subjects]);
 
   // Handle Filtering Logic
@@ -73,10 +80,13 @@ const AllSubjects = () => {
     }
 
     try {
-      await axios.delete(`${API_BASE_URL}subjects/${id}`);
+      const token = localStorage.getItem("token");
+      await axios.delete(`${baseUrl}subjects/${id}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      });
       setSubjects(prev => prev.filter(sub => sub._id !== id));
     } catch (error) {
-      alert(error.response?.data?.msg || "Failed to delete subject");
+      alert(error.response?.data?.msg || error.response?.data?.message || "Failed to delete subject");
     }
   };
 
