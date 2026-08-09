@@ -117,7 +117,7 @@ export default function Topics() {
     fetchUserProgress();
   }, [activeProfile, baseUrl]);
 
-  // 3. FETCH CURRICULUM DATA
+  // 3. FETCH CURRICULUM DATA WITH STRICT LEVEL FILTERING
   useEffect(() => {
     const fetchTopicsAndLessons = async () => {
       if (!level) {
@@ -142,11 +142,12 @@ export default function Topics() {
         const normSubjectParam = normalizeKey(subject);
         const normLevelParam = normalizeKey(level);
 
+        // Match subject data primary on subject name and current level
         const currentSubjectData = allSubjects.find((s) => {
           const sName = normalizeKey(getStringVal(s.name || s.title));
           const sLevel = normalizeKey(getStringVal(s.level));
-          return sName === normSubjectParam && (!sLevel || sLevel === normLevelParam);
-        });
+          return sName === normSubjectParam && (sLevel === normLevelParam || !sLevel);
+        }) || allSubjects.find((s) => normalizeKey(getStringVal(s.name || s.title)) === normSubjectParam);
 
         if (currentSubjectData && currentSubjectData.strands) {
           setStrands(currentSubjectData.strands);
@@ -157,7 +158,13 @@ export default function Topics() {
         const map = {};
 
         if (Array.isArray(fetchedLessons)) {
-          fetchedLessons.forEach((lesson) => {
+          // Strict client-side filter: Ensure only lessons matching the target level are listed
+          const levelFilteredLessons = fetchedLessons.filter((lesson) => {
+            const lessonLevel = normalizeKey(getStringVal(lesson.level));
+            return !lessonLevel || lessonLevel === normLevelParam;
+          });
+
+          levelFilteredLessons.forEach((lesson) => {
             const rawSubStrand = getStringVal(
               lesson.subStrand || lesson.subStrandName || lesson.topic
             );
@@ -171,7 +178,14 @@ export default function Topics() {
         } else if (typeof fetchedLessons === "object" && fetchedLessons !== null) {
           Object.entries(fetchedLessons).forEach(([subName, list]) => {
             const subKey = normalizeKey(subName);
-            map[subKey] = list;
+            if (Array.isArray(list)) {
+              map[subKey] = list.filter((l) => {
+                const lessonLevel = normalizeKey(getStringVal(l.level));
+                return !lessonLevel || lessonLevel === normLevelParam;
+              });
+            } else {
+              map[subKey] = list;
+            }
           });
         }
 
