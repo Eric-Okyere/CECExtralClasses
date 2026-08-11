@@ -8,12 +8,12 @@ export default function CreateSubjectForm() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   
-  // Academic levels available in the Ghana CCP curriculum
-  const levels = ["JHS 1", "JHS 2", "JHS 3"];
+  // Updated levels to use 'Basic' instead of 'JHS'
+  const levels = ["Basic 7", "Basic 8", "Basic 9"];
 
   const [formData, setFormData] = useState({
     name: "",
-    level: "JHS 1",
+    level: "Basic 7",
     strands: [
       { 
         title: "", 
@@ -23,12 +23,13 @@ export default function CreateSubjectForm() {
   });
 
   // --- Strand Handlers ---
+  // Updated: Prepend new strand at the top
   const addStrand = () => {
     setFormData((prev) => ({
       ...prev,
       strands: [
-        ...prev.strands, 
-        { title: "", subStrands: [{ title: "", code: "" }] }
+        { title: "", subStrands: [{ title: "", code: "" }] },
+        ...prev.strands
       ]
     }));
   };
@@ -47,9 +48,13 @@ export default function CreateSubjectForm() {
   };
 
   // --- Sub-Strand Handlers ---
+  // Updated: Prepend new sub-strand at the top
   const addSubStrand = (sIndex) => {
     const updatedStrands = [...formData.strands];
-    updatedStrands[sIndex].subStrands.push({ title: "", code: "" });
+    updatedStrands[sIndex].subStrands = [
+      { title: "", code: "" },
+      ...updatedStrands[sIndex].subStrands
+    ];
     setFormData({ ...formData, strands: updatedStrands });
   };
 
@@ -69,7 +74,6 @@ export default function CreateSubjectForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Basic frontend validation
     if (!formData.name.trim()) {
       alert("Please enter a subject name.");
       return;
@@ -78,7 +82,6 @@ export default function CreateSubjectForm() {
     setLoading(true);
 
     try {
-      // Clean empty sub-strand records before sending
       const sanitizedPayload = {
         ...formData,
         name: formData.name.trim(),
