@@ -98,7 +98,7 @@ export default function CreateSubjectForm() {
 
       if (response.data.success) {
         alert(`${formData.name} for ${formData.level} created successfully!`);
-        navigate("/admindashboard");
+        navigate("/all-subjects");
       }
     } catch (err) {
       console.error("Error creating subject:", err);
