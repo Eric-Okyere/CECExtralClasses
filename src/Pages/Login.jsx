@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import {
   Loader2,
@@ -24,6 +24,14 @@ const getApiUrl = (endpoint) => {
   return `${base}${path}`;
 };
 
+// Helper: Verifies if user has completed required learning profile setup
+const isProfileComplete = (user) => {
+  if (!user) return false;
+  const level = user.learningProfile?.level || user.level;
+  const gender = user.learningProfile?.gender || user.gender;
+  return Boolean(level && gender);
+};
+
 export default function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -31,12 +39,12 @@ export default function Login() {
   const [agreed, setAgreed] = useState(false);
   
   // UI Modals
-  const [showModal, setShowModal] = useState(false); // First-time setup modal
+  const [showModal, setShowModal] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState(null);
 
   const navigate = useNavigate();
 
-  // Profile Setup State (for new users)
+  // Profile Setup State
   const [extraInfo, setExtraInfo] = useState({
     level: "",
     gender: "",
@@ -53,6 +61,29 @@ export default function Login() {
       accommodationsNeeded: "",
     },
   });
+
+  // --- 1. CHECK LOCALSTORAGE ON MOUNT (PREVENTS REFRESH BYPASS) ---
+  useEffect(() => {
+    const storedToken = localStorage.getItem("token");
+    const storedUserStr = localStorage.getItem("user");
+
+    if (storedToken && storedUserStr) {
+      try {
+        const parsedUser = JSON.parse(storedUserStr);
+        setLoggedInUser(parsedUser);
+
+        // If logged in but profile is NOT complete, force showModal and stay on this page
+        if (!isProfileComplete(parsedUser)) {
+          setShowModal(true);
+        } else {
+          // Profile is complete, navigate to home/dashboard
+          navigate("/", { replace: true });
+        }
+      } catch (e) {
+        console.error("Error parsing stored user", e);
+      }
+    }
+  }, [navigate]);
 
   // --- GOOGLE LOGIN HANDLER ---
   const handleGoogleSuccess = async (credentialResponse) => {
@@ -78,12 +109,13 @@ export default function Login() {
         localStorage.setItem("user", JSON.stringify(data.user));
         setLoggedInUser(data.user);
 
-        if (data.isNewUser) {
+        // Check if new user OR existing user without completed profile
+        if (data.isNewUser || !isProfileComplete(data.user)) {
           setShowModal(true);
           setLoading(false);
         } else {
           setLoadingMessage("Welcome back! Redirecting...");
-          navigate("/");
+          navigate("/", { replace: true });
         }
       } else {
         setError(data.msg || "Google authentication failed.");
@@ -95,7 +127,7 @@ export default function Login() {
     }
   };
 
-  // --- UPDATE PROFILE SETUP HANDLER (NEW USERS) ---
+  // --- UPDATE PROFILE SETUP HANDLER ---
   const handleUpdateProfile = async () => {
     const userId = loggedInUser?._id || loggedInUser?.id;
     if (!userId) {
@@ -111,16 +143,15 @@ export default function Login() {
       const token = localStorage.getItem("token");
       const isParent = extraInfo.role === "parent_managed";
 
-      // 1. Update Profile Payload
       const payload = {
         role: isParent ? "parent" : "learner",
         acceptedTerms: agreed,
         acceptedTermsAt: new Date(),
         learningProfile: {
           ...loggedInUser?.learningProfile,
-          level: !isParent ? extraInfo.level : undefined,
-          gender: !isParent ? extraInfo.gender : undefined,
-          age: !isParent && extraInfo.childAge ? Number(extraInfo.childAge) : undefined,
+          level: extraInfo.level,
+          gender: extraInfo.gender,
+          age: extraInfo.childAge ? Number(extraInfo.childAge) : undefined,
         },
         parentDetails: {
           ...loggedInUser?.parentDetails,
@@ -148,9 +179,8 @@ export default function Login() {
       }
 
       const userToStore = data.user ? data.user : data;
-      localStorage.setItem("user", JSON.stringify(userToStore));
 
-      // 2. If Parent, automatically create the child profile & attach parentId
+      // Link child if parent_managed
       if (isParent) {
         setLoadingMessage("Linking child account...");
         const childPayload = {
@@ -178,9 +208,11 @@ export default function Login() {
         }
       }
 
+      // Update local storage with complete profile
+      localStorage.setItem("user", JSON.stringify(userToStore));
       setShowModal(false);
       setLoadingMessage("Profile updated! Redirecting...");
-      navigate("/");
+      navigate("/", { replace: true });
     } catch (err) {
       console.error("Profile Setup Error:", err);
       setError("Something went wrong while updating profile.");
@@ -264,13 +296,16 @@ export default function Login() {
         </div>
       </div>
 
-      {/* --- MODAL: FIRST TIME PROFILE SETUP --- */}
+      {/* --- MODAL: FORCED FIRST TIME PROFILE SETUP --- */}
       {showModal && (
-        <div className="fixed inset-0 bg-slate-900/60 flex justify-center items-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white p-8 rounded-[2rem] shadow-2xl max-w-lg w-full my-8 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-black text-center mb-6 uppercase">
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm flex justify-center items-center p-4 z-50 overflow-y-auto">
+          <div className="bg-white p-8 rounded-[2rem] shadow-2xl max-w-lg w-full my-8 max-h-[90vh] overflow-y-auto relative">
+            <h2 className="text-2xl font-black text-center mb-2 uppercase">
               Profile Setup 🎓
             </h2>
+            <p className="text-xs text-center text-slate-500 mb-6">
+              Please complete your profile details to continue.
+            </p>
 
             {error && (
               <div className="flex items-center gap-3 bg-red-50 text-red-600 p-4 rounded-2xl mb-4 text-xs">
@@ -311,10 +346,9 @@ export default function Login() {
                 </button>
               </div>
 
-              {/* Dynamic Fields Section */}
+              {/* Dynamic Fields */}
               {extraInfo.role === "parent_managed" ? (
                 <>
-                  {/* Parent Details */}
                   <div className="space-y-3">
                     <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                       Child's Details
@@ -323,7 +357,7 @@ export default function Login() {
                     <input
                       type="text"
                       placeholder="Child's First Name *"
-                      className="w-full p-4 bg-slate-50 rounded-xl"
+                      className="w-full p-4 bg-slate-50 rounded-xl text-sm"
                       value={extraInfo.childFirstName}
                       onChange={(e) =>
                         setExtraInfo({
@@ -336,7 +370,7 @@ export default function Login() {
                     <input
                       type="text"
                       placeholder="Child's Last Name *"
-                      className="w-full p-4 bg-slate-50 rounded-xl"
+                      className="w-full p-4 bg-slate-50 rounded-xl text-sm"
                       value={extraInfo.childLastName}
                       onChange={(e) =>
                         setExtraInfo({
@@ -346,23 +380,21 @@ export default function Login() {
                       }
                     />
 
-                    {/* Grade Level for Child */}
                     <select
-                      className="w-full p-4 bg-slate-50 rounded-xl text-slate-800 font-medium"
+                      className="w-full p-4 bg-slate-50 rounded-xl text-slate-800 text-sm font-medium"
                       value={extraInfo.level}
                       onChange={(e) =>
                         setExtraInfo({ ...extraInfo, level: e.target.value })
                       }
                     >
                       <option value="">Select Child's Grade Level *</option>
-                      <option value="JHS 1">JHS 1</option>
-                      <option value="JHS 2">JHS 2</option>
-                      <option value="JHS 3">JHS 3</option>
+                      <option value="JHS 1">BASIC 7</option>
+                      <option value="JHS 2">BASIC 8</option>
+                      <option value="JHS 3">BASIC 9</option>
                     </select>
 
-                    {/* Gender for Child */}
                     <select
-                      className="w-full p-4 bg-slate-50 rounded-xl text-slate-800 font-medium"
+                      className="w-full p-4 bg-slate-50 rounded-xl text-slate-800 text-sm font-medium"
                       value={extraInfo.gender}
                       onChange={(e) =>
                         setExtraInfo({ ...extraInfo, gender: e.target.value })
@@ -376,7 +408,7 @@ export default function Login() {
                     <input
                       type="number"
                       placeholder="Child's Age"
-                      className="w-full p-4 bg-slate-50 rounded-xl"
+                      className="w-full p-4 bg-slate-50 rounded-xl text-sm"
                       value={extraInfo.childAge}
                       onChange={(e) =>
                         setExtraInfo({
@@ -387,14 +419,13 @@ export default function Login() {
                     />
                   </div>
 
-                  {/* Parent Info */}
                   <div className="space-y-3 pt-2">
                     <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                       Parent / Guardian Contact
                     </p>
 
                     <select
-                      className="w-full p-4 bg-slate-50 rounded-xl text-slate-800 font-medium"
+                      className="w-full p-4 bg-slate-50 rounded-xl text-slate-800 text-sm font-medium"
                       value={extraInfo.relationship}
                       onChange={(e) =>
                         setExtraInfo({
@@ -419,23 +450,22 @@ export default function Login() {
                   </div>
                 </>
               ) : (
-                /* Solo Learner Fields */
                 <>
                   <select
-                    className="w-full p-4 bg-slate-50 rounded-xl text-slate-800 font-medium"
+                    className="w-full p-4 bg-slate-50 rounded-xl text-slate-800 text-sm font-medium"
                     value={extraInfo.level}
                     onChange={(e) =>
                       setExtraInfo({ ...extraInfo, level: e.target.value })
                     }
                   >
                     <option value="">Select Your Grade Level *</option>
-                    <option value="JHS 1">JHS 1</option>
-                    <option value="JHS 2">JHS 2</option>
-                    <option value="JHS 3">JHS 3</option>
+                    <option value="JHS 1">BASIC 7</option>
+                    <option value="JHS 2">BASIC 8</option>
+                    <option value="JHS 3">BASIC 9</option>
                   </select>
 
                   <select
-                    className="w-full p-4 bg-slate-50 rounded-xl text-slate-800 font-medium"
+                    className="w-full p-4 bg-slate-50 rounded-xl text-slate-800 text-sm font-medium"
                     value={extraInfo.gender}
                     onChange={(e) =>
                       setExtraInfo({ ...extraInfo, gender: e.target.value })
@@ -449,7 +479,7 @@ export default function Login() {
                   <input
                     type="number"
                     placeholder="Your Age"
-                    className="w-full p-4 bg-slate-50 rounded-xl"
+                    className="w-full p-4 bg-slate-50 rounded-xl text-sm"
                     value={extraInfo.childAge}
                     onChange={(e) =>
                       setExtraInfo({

@@ -1,13 +1,25 @@
+// src/components/ProtectedRoute.jsx
+import React from "react";
 import { Navigate } from "react-router-dom";
 
 export default function ProtectedRoute({ children }) {
-  const user = localStorage.getItem("user");
+  const token = localStorage.getItem("token");
+  const userStr = localStorage.getItem("user");
 
-  // If there is no user in localStorage, redirect to login
-  if (!user) {
+  if (!token || !userStr) {
     return <Navigate to="/login" replace />;
   }
 
-  // If there is a user, render the actual page (children)
+  const user = JSON.parse(userStr);
+  const isSetupComplete = Boolean(
+    (user.learningProfile?.level || user.level) &&
+    (user.learningProfile?.gender || user.gender)
+  );
+
+  // If user is authenticated but profile is incomplete, force redirect back to login
+  if (!isSetupComplete) {
+    return <Navigate to="/login" replace />;
+  }
+
   return children;
 }

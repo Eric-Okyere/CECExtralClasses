@@ -17,23 +17,69 @@ export default function Navbar() {
   const navigate = useNavigate();
   const dropdownRef = useRef(null);
 
-  // --- 1. INITIAL SESSION CHECK ---
+  // --- HELPER LOGOUT METHOD ---
+  const performLogout = () => {
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    localStorage.removeItem("parentSession");
+    sessionStorage.removeItem("autoSwitched"); 
+    setUser(null);
+    setMenuOpen(false);
+    setDropdownOpen(false);
+    navigate("/login");
+  };
+
+  // --- 1. INITIAL SESSION CHECK WITH DATABASE VALIDATION ---
   useEffect(() => {
-    const checkUser = () => {
+    const checkUser = async () => {
       const storedData = localStorage.getItem("user");
       const storedParent = localStorage.getItem("parentSession");
 
       if (storedData) {
-        const parsed = JSON.parse(storedData);
-        const currentUser = parsed.user || parsed;
-        setUser(currentUser);
+        try {
+          const parsed = JSON.parse(storedData);
+          const currentUser = parsed.user || parsed;
+          const userId = currentUser?._id || currentUser?.id;
 
-        if (storedParent) {
-          setParentData(JSON.parse(storedParent));
-        }
+          // Step 1: Immediate check for missing ID in localStorage
+          if (!userId) {
+            performLogout();
+            return;
+          }
 
-        if (currentUser.role === "parent") {
-          fetchChildren(currentUser._id);
+          // Step 2: Validate against backend database to check if user still exists
+          const token = localStorage.getItem("token");
+          const verifyRes = await fetch(`${API_BASE_URL}auth/user/${userId}`, {
+            headers: {
+              "Authorization": `Bearer ${token}`,
+              "Content-Type": "application/json"
+            }
+          });
+
+          // If the server returns 404 (Not Found) or 401 (Unauthorized), user was deleted
+          if (verifyRes.status === 404 || verifyRes.status === 401) {
+            console.warn("User account no longer exists in database. Logging out...");
+            performLogout();
+            return;
+          }
+
+          if (verifyRes.ok) {
+            const dbUserData = await verifyRes.json();
+            setUser(dbUserData); // Sync state with fresh DB data
+          } else {
+            // Fallback to cached data if endpoint returns non-404 error (e.g., server glitch)
+            setUser(currentUser);
+          }
+
+          if (storedParent) {
+            setParentData(JSON.parse(storedParent));
+          }
+
+          if (currentUser.role === "parent") {
+            fetchChildren(userId);
+          }
+        } catch (err) {
+          console.error("Error validating session:", err);
         }
       }
     };
@@ -120,14 +166,7 @@ export default function Navbar() {
     const confirmed = window.confirm("Are you sure you want to log out?");
     if (!confirmed) return;
 
-    localStorage.removeItem("user");
-    localStorage.removeItem("token");
-    localStorage.removeItem("parentSession");
-    sessionStorage.removeItem("autoSwitched"); 
-    setUser(null);
-    setMenuOpen(false);
-    setDropdownOpen(false);
-    navigate("/login");
+    performLogout();
   };
 
   const activeStyle = ({ isActive }) => 
