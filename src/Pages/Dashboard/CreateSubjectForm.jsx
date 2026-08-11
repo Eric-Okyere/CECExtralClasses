@@ -23,7 +23,6 @@ export default function CreateSubjectForm() {
   });
 
   // --- Strand Handlers ---
-  // Updated: Prepend new strand at the top
   const addStrand = () => {
     setFormData((prev) => ({
       ...prev,
@@ -48,7 +47,6 @@ export default function CreateSubjectForm() {
   };
 
   // --- Sub-Strand Handlers ---
-  // Updated: Prepend new sub-strand at the top
   const addSubStrand = (sIndex) => {
     const updatedStrands = [...formData.strands];
     updatedStrands[sIndex].subStrands = [
@@ -190,11 +188,14 @@ export default function CreateSubjectForm() {
 
                 <div className="space-y-6">
                   <div>
-                    <label className="block text-[10px] font-black uppercase tracking-widest text-blue-500 mb-2 italic">Strand {sIndex + 1}</label>
+                    {/* DYNAMIC STRAND NUMBER: Counts down from array length to 1 */}
+                    <label className="block text-[10px] font-black uppercase tracking-widest text-blue-500 mb-2 italic">
+                      Strand {formData.strands.length - sIndex}
+                    </label>
                     <input 
                       type="text" 
                       required
-                      placeholder="e.g. Strand 1: Patterns and Relations"
+                      placeholder={`e.g. Strand ${formData.strands.length - sIndex}: Patterns and Relations`}
                       className="w-full bg-slate-50 border-none rounded-xl p-3 font-bold text-slate-700 outline-none focus:ring-1 focus:ring-blue-300"
                       value={strand.title}
                       onChange={(e) => updateStrandTitle(sIndex, e.target.value)}
@@ -224,10 +225,11 @@ export default function CreateSubjectForm() {
                           onChange={(e) => updateSubStrand(sIndex, subIndex, "code", e.target.value)}
                         />
 
+                        {/* DYNAMIC SUB-STRAND NUMBER: Counts down from subStrands length to 1 */}
                         <input 
                           type="text" 
                           required
-                          placeholder={`Sub-strand ${subIndex + 1} Title`}
+                          placeholder={`Sub-strand ${strand.subStrands.length - subIndex} Title`}
                           className="flex-1 bg-white border border-slate-200 rounded-lg p-2 text-xs font-bold text-slate-700 outline-none focus:border-blue-400"
                           value={sub.title}
                           onChange={(e) => updateSubStrand(sIndex, subIndex, "title", e.target.value)}
