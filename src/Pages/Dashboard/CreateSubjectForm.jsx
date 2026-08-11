@@ -8,12 +8,12 @@ export default function CreateSubjectForm() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   
-  // Updated levels to use 'Basic' instead of 'JHS'
-  const levels = ["Basic 7", "Basic 8", "Basic 9"];
+  // Reverted levels to use 'JHS'
+  const levels = ["JHS 1", "JHS 2", "JHS 3"];
 
   const [formData, setFormData] = useState({
     name: "",
-    level: "Basic 7",
+    level: "JHS 1",
     strands: [
       { 
         title: "", 
@@ -188,7 +188,6 @@ export default function CreateSubjectForm() {
 
                 <div className="space-y-6">
                   <div>
-                    {/* DYNAMIC STRAND NUMBER: Counts down from array length to 1 */}
                     <label className="block text-[10px] font-black uppercase tracking-widest text-blue-500 mb-2 italic">
                       Strand {formData.strands.length - sIndex}
                     </label>
@@ -219,13 +218,12 @@ export default function CreateSubjectForm() {
                       <div key={subIndex} className="flex gap-2 items-center">
                         <input 
                           type="text" 
-                          placeholder="Code (e.g. B7.1.1)"
+                          placeholder="Code (e.g. JHS1.1.1)"
                           className="w-28 bg-slate-50 border border-slate-100 rounded-lg p-2 text-xs font-bold text-slate-600 outline-none focus:border-blue-300"
                           value={sub.code}
                           onChange={(e) => updateSubStrand(sIndex, subIndex, "code", e.target.value)}
                         />
 
-                        {/* DYNAMIC SUB-STRAND NUMBER: Counts down from subStrands length to 1 */}
                         <input 
                           type="text" 
                           required
