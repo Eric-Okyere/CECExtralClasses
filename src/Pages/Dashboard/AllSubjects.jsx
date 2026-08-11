@@ -29,6 +29,12 @@ const AllSubjects = () => {
   // Ensure trailing slash on API base URL
   const baseUrl = API_BASE_URL.endsWith('/') ? API_BASE_URL : `${API_BASE_URL}/`;
 
+  // Helper function to format level names from JHS to Basic
+  const formatLevel = (levelStr) => {
+    if (!levelStr) return '';
+    return levelStr.replace(/\bJHS\b/gi, 'Basic');
+  };
+
   const fetchSubjects = async () => {
     try {
       setLoading(true);
@@ -52,7 +58,7 @@ const AllSubjects = () => {
 
   // Dynamically extract and sort unique academic levels from fetched subjects
   const availableLevels = useMemo(() => {
-    const levels = subjects.map(s => s.level).filter(Boolean);
+    const levels = subjects.map(s => formatLevel(s.level)).filter(Boolean);
     const sortedUniqueLevels = Array.from(new Set(levels)).sort();
     return ['All Levels', ...sortedUniqueLevels];
   }, [subjects]);
@@ -68,7 +74,7 @@ const AllSubjects = () => {
     }
 
     if (selectedLevel !== 'All Levels') {
-      result = result.filter(sub => sub.level === selectedLevel);
+      result = result.filter(sub => formatLevel(sub.level) === selectedLevel || sub.level === selectedLevel);
     }
 
     setFilteredSubjects(result);
@@ -166,7 +172,7 @@ const AllSubjects = () => {
                   <div className="flex flex-col items-end">
                     <span className="text-[10px] font-black text-gray-300 uppercase tracking-tighter mb-1">Academic Level</span>
                     <span className="px-3 py-1 bg-gray-900 text-white text-[10px] font-black rounded-lg">
-                      {subject.level}
+                      {formatLevel(subject.level)}
                     </span>
                   </div>
                 </div>

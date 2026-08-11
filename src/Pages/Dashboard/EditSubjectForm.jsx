@@ -139,44 +139,21 @@ const EditSubjectForm = () => {
     setSubmitting(true);
 
     try {
-      // 1. First, create any new sub-strands in the database so they get real ObjectIds
-      const updatedStrands = await Promise.all(
-        subject.strands.map(async (strand) => {
-          const processedSubStrands = await Promise.all(
-            (strand.subStrands || []).map(async (ss) => {
-              // Existing sub-strand with a MongoDB ObjectId
-              if (ss._id && ss._id.length === 24) {
-                return ss._id;
-              }
-
-              // New sub-strand: persist to database first
-              if (ss.title.trim()) {
-                const res = await axios.post(
-                  `${API_BASE_URL}subjects/${id}/strands/${strand._id || 'temp'}/substrands`,
-                  { title: ss.title, code: ss.code }
-                );
-                return res.data?.data?._id || ss._id;
-              }
-              return null;
-            })
-          );
-
-          return {
-            ...(strand._id ? { _id: strand._id } : {}),
-            title: strand.title,
-            subStrands: processedSubStrands.filter(Boolean)
-          };
-        })
-      );
-
-      // 2. Prepare payload matching Mongoose schema expectations
+      // Clean and construct full payload matching controller expectations
       const payload = {
         name: subject.name.trim(),
         level: subject.level.trim(),
-        strands: updatedStrands
+        strands: subject.strands.map((strand) => ({
+          ...(strand._id && strand._id.length === 24 ? { _id: strand._id } : {}),
+          title: strand.title.trim(),
+          subStrands: (strand.subStrands || []).map((ss) => ({
+            ...(ss._id && ss._id.length === 24 ? { _id: ss._id } : {}),
+            title: ss.title ? ss.title.trim() : '',
+            code: ss.code ? ss.code.trim() : ''
+          }))
+        }))
       };
 
-      // 3. Update Subject
       await axios.put(`${API_BASE_URL}subjects/${id}`, payload);
       alert("Subject updated successfully!");
       navigate('/all-subjects');
