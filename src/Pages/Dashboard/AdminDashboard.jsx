@@ -1,10 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { 
-  Users, Phone, GraduationCap, Shield, 
-  Loader2, Search, ExternalLink, Calendar, 
-  Filter, Edit3, X, Save, User as UserIcon, 
-  CheckCircle2, BookOpen, Eye, MessageSquare, Trash2
+  Shield, Loader2, Search, Edit3, X, Save, 
+  BookOpen, Eye, MessageSquare, Trash2, ShieldCheck, ShieldAlert
 } from "lucide-react";
 import { API_BASE_URL } from "../../services/BaseUrl";
 import Navbar from "../../components/Navbar";
@@ -26,17 +24,23 @@ export default function AdminDashboard() {
     age: "",
     phoneNumber: "",
     isVerified: true,
+    admin: false,
   });
 
-  useEffect(() => { fetchUsers(); }, []);
+  useEffect(() => { 
+    fetchUsers(); 
+  }, []);
 
   const fetchUsers = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}auth/users`);
       const data = await response.json();
       setUsers(data);
-    } catch (error) { console.error("Fetch error:", error); } 
-    finally { setLoading(false); }
+    } catch (error) { 
+      console.error("Fetch error:", error); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
   const handleEditClick = (user) => {
@@ -50,13 +54,13 @@ export default function AdminDashboard() {
       age: user.learningProfile?.age || "",
       phoneNumber: user.parentDetails?.phoneNumber || "",
       isVerified: user.isVerified ?? true,
+      admin: user.admin ?? false,
     });
   };
 
   const handleUpdate = async () => {
     try {
-      // Calling the dedicated admin update endpoint
-      const res = await fetch(`${API_BASE_URL}auth/update-user/${editingUser._id}`, {
+      const res = await fetch(`${API_BASE_URL}auth/adminupdate-user/${editingUser._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -68,6 +72,7 @@ export default function AdminDashboard() {
           age: editForm.age,
           phoneNumber: editForm.phoneNumber,
           isVerified: editForm.isVerified,
+          admin: editForm.admin,
         }),
       });
 
@@ -82,6 +87,25 @@ export default function AdminDashboard() {
     } catch (err) {
       console.error("Update error:", err);
       alert("Update failed. Please check connection.");
+    }
+  };
+
+  const handleQuickToggleAdmin = async (userId, currentAdminStatus) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}auth/toggle-admin/${userId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ admin: !currentAdminStatus }),
+      });
+
+      if (res.ok) {
+        const updatedUser = await res.json();
+        setUsers(users.map((u) => (u._id === updatedUser._id ? updatedUser : u)));
+      } else {
+        alert("Failed to toggle admin status.");
+      }
+    } catch (error) {
+      console.error("Toggle error:", error);
     }
   };
 
@@ -109,248 +133,311 @@ export default function AdminDashboard() {
     }
   };
 
-  const filteredUsers = users.filter(user => {
+  const filteredUsers = users.filter((user) => {
     const search = searchTerm.toLowerCase();
-    const matchesSearch = 
-      (user.name?.toLowerCase().includes(search)) || 
-      (user.email?.toLowerCase().includes(search));
+    const matchesSearch =
+      user.name?.toLowerCase().includes(search) ||
+      user.email?.toLowerCase().includes(search);
     const matchesRole = filterRole === "all" || user.role === filterRole;
     return matchesSearch && matchesRole;
   });
 
-  if (loading) return <div className="h-screen flex items-center justify-center"><Loader2 className="animate-spin text-blue-600" size={40} /></div>;
+  if (loading) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <Loader2 className="animate-spin text-blue-600" size={40} />
+      </div>
+    );
+  }
 
   return (
     <>
-    <Navbar />
-    <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-10 text-sm">
-      <div className="max-w-7xl mx-auto mb-10">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-blue-600 rounded-2xl text-white"><Shield size={24} /></div>
-            <h1 className="text-3xl font-black uppercase italic">Management Console</h1>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <Link 
-              to={"/all-subjects"}
-              className="flex items-center gap-2 px-6 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-600 transition-all shadow-lg shadow-slate-200"
-            >
-              <BookOpen size={16} />
-              Manage Subjects
-            </Link>
-
-            <Link 
-              to={"/manage-lessons"}
-              className="flex items-center gap-2 px-6 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-600 transition-all shadow-lg shadow-slate-200"
-            >
-              <BookOpen size={16} />
-              Manage Lessons
-            </Link>
-
-            <Link 
-              to={"/admin/feedback"}
-              className="flex items-center gap-2 px-6 py-4 bg-blue-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-900 transition-all shadow-lg shadow-blue-100"
-            >
-              <MessageSquare size={16} />
-              View Feedback
-            </Link>
-          </div>
-
-          <div className="flex gap-3 w-full md:w-auto">
-             <input 
-              placeholder="Search..." 
-              className="p-4 bg-white rounded-2xl border border-slate-100 outline-none w-full md:w-auto" 
-              onChange={(e) => setSearchTerm(e.target.value)} 
-             />
-          </div>
-        </div>
-      </div>
-
-      <div className="max-w-7xl mx-auto bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
-        <table className="w-full text-left">
-          <thead>
-            <tr className="bg-slate-50 border-b text-[10px] font-black uppercase tracking-widest text-slate-400">
-              <th className="px-8 py-6">Identity</th>
-              <th className="px-6 py-6">Role</th>
-              <th className="px-8 py-6 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-50">
-            {filteredUsers.map((user) => (
-              <tr key={user._id} className="hover:bg-slate-50/40 transition-all">
-                {user.role === "child" || user.role === "student" ? (
-                  <td className="px-8 py-6 font-black">
-                    {user.name} {user.surname}
-                  </td>
-                ) : (
-                  <td className="px-8 py-6 font-black">
-                    {user.name}
-                  </td>
-                )}
-
-                <td className="px-6 py-6 uppercase font-bold text-[10px] text-blue-600">{user.role}</td>
-                <td className="px-8 py-6 text-right">
-                  <div className="flex justify-end gap-2">
-                    <button 
-                      onClick={() => navigate(`/admin/user/${user._id}`)}
-                      className="p-3 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all"
-                      title="View Profile"
-                    >
-                      <Eye size={18} />
-                    </button>
-                    <button 
-                      onClick={() => handleEditClick(user)} 
-                      className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-800 hover:text-white transition-all"
-                      title="Edit User"
-                    >
-                      <Edit3 size={18} />
-                    </button>
-                    <button 
-                      onClick={() => handleDeleteUser(user._id, user.name)} 
-                      className="p-3 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition-all"
-                      title="Delete User"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* --- EXPANDED FULL USER EDIT MODAL --- */}
-      {editingUser && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex justify-center items-center p-4 z-50 overflow-y-auto">
-          <div className="bg-white w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <h2 className="text-2xl font-black uppercase italic">Edit Profile</h2>
-                <p className="text-xs text-slate-400 font-bold">Update member records and access controls</p>
+      <Navbar />
+      <div className="min-h-screen bg-[#F8FAFC] p-4 md:p-10 text-sm">
+        {/* HEADER & CONTROLS */}
+        <div className="max-w-7xl mx-auto mb-10">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-blue-600 rounded-2xl text-white">
+                <Shield size={24} />
               </div>
-              <button onClick={() => setEditingUser(null)} className="p-2 bg-slate-100 rounded-full hover:bg-slate-200">
-                <X size={18} />
-              </button>
+              <h1 className="text-3xl font-black uppercase italic">Management Console</h1>
             </div>
 
-            <div className="space-y-4">
-              {/* Names */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">First Name</label>
-                  <input 
-                    className="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold text-slate-800 focus:ring-2 focus:ring-blue-500" 
-                    value={editForm.name} 
-                    onChange={(e) => setEditForm({...editForm, name: e.target.value})} 
-                    placeholder="First Name" 
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Surname</label>
-                  <input 
-                    className="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold text-slate-800 focus:ring-2 focus:ring-blue-500" 
-                    value={editForm.surname} 
-                    onChange={(e) => setEditForm({...editForm, surname: e.target.value})} 
-                    placeholder="Surname" 
-                  />
-                </div>
-              </div>
-
-              {/* Email */}
-              <div>
-                <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Email Address</label>
-                <input 
-                  type="email"
-                  className="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold text-slate-800 focus:ring-2 focus:ring-blue-500" 
-                  value={editForm.email} 
-                  onChange={(e) => setEditForm({...editForm, email: e.target.value})} 
-                  placeholder="Email Address" 
-                />
-              </div>
-
-              {/* Role & Level */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Account Role</label>
-                  <select 
-                    className="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold text-slate-800 focus:ring-2 focus:ring-blue-500"
-                    value={editForm.role}
-                    onChange={(e) => setEditForm({...editForm, role: e.target.value})}
-                  >
-                    <option value="learner">Learner / Student</option>
-                    <option value="parent">Parent</option>
-                    <option value="child">Child</option>
-                    <option value="admin">Admin</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Academic Level</label>
-                  <select 
-                    className="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold text-slate-800 focus:ring-2 focus:ring-blue-500"
-                    value={editForm.level}
-                    onChange={(e) => setEditForm({...editForm, level: e.target.value})}
-                  >
-                    <option value="Basic 7">Basic 7</option>
-                    <option value="Basic 8">Basic 8</option>
-                    <option value="Basic 9">Basic 9</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Age & Phone */}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Age</label>
-                  <input 
-                    type="number"
-                    className="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold text-slate-800 focus:ring-2 focus:ring-blue-500" 
-                    value={editForm.age} 
-                    onChange={(e) => setEditForm({...editForm, age: e.target.value})} 
-                    placeholder="Age" 
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">Phone Number</label>
-                  <input 
-                    type="tel"
-                    className="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold text-slate-800 focus:ring-2 focus:ring-blue-500" 
-                    value={editForm.phoneNumber} 
-                    onChange={(e) => setEditForm({...editForm, phoneNumber: e.target.value})} 
-                    placeholder="Phone Number" 
-                  />
-                </div>
-              </div>
-
-              {/* Account Status / Verified Toggle */}
-              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
-                <div>
-                  <p className="font-bold text-slate-800 text-xs">Email Verified</p>
-                  <p className="text-[10px] text-slate-400 font-medium">Grant account verified status</p>
-                </div>
-                <input 
-                  type="checkbox"
-                  checked={editForm.isVerified}
-                  onChange={(e) => setEditForm({...editForm, isVerified: e.target.checked})}
-                  className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
-                />
-              </div>
-
-              {/* Submit Button */}
-              <button 
-                onClick={handleUpdate} 
-                className="w-full bg-blue-600 text-white py-5 rounded-[1.5rem] font-black uppercase text-xs tracking-wider shadow-lg shadow-blue-200 hover:bg-slate-900 transition-all mt-4 flex items-center justify-center gap-2"
+            <div className="flex flex-wrap items-center gap-3">
+              <Link
+                to={"/all-subjects"}
+                className="flex items-center gap-2 px-6 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-600 transition-all shadow-lg shadow-slate-200"
               >
-                <Save size={18} /> Save Changes
-              </button>
+                <BookOpen size={16} />
+                Manage Subjects
+              </Link>
+
+              <Link
+                to={"/manage-lessons"}
+                className="flex items-center gap-2 px-6 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-600 transition-all shadow-lg shadow-slate-200"
+              >
+                <BookOpen size={16} />
+                Manage Lessons
+              </Link>
+
+              <Link
+                to={"/admin/feedback"}
+                className="flex items-center gap-2 px-6 py-4 bg-blue-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-slate-900 transition-all shadow-lg shadow-blue-100"
+              >
+                <MessageSquare size={16} />
+                View Feedback
+              </Link>
+            </div>
+
+            <div className="flex gap-3 w-full md:w-auto">
+              <input
+                placeholder="Search by name or email..."
+                className="p-4 bg-white rounded-2xl border border-slate-100 outline-none w-full md:w-80 shadow-sm focus:ring-2 focus:ring-blue-500"
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
             </div>
           </div>
         </div>
-      )}
-    </div>
+
+        {/* USERS TABLE */}
+        <div className="max-w-7xl mx-auto bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
+          <table className="w-full text-left">
+            <thead>
+              <tr className="bg-slate-50 border-b text-[10px] font-black uppercase tracking-widest text-slate-400">
+                <th className="px-8 py-6">Identity</th>
+                <th className="px-6 py-6">Role</th>
+                <th className="px-6 py-6">Admin Access</th>
+                <th className="px-8 py-6 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {filteredUsers.map((user) => (
+                <tr key={user._id} className="hover:bg-slate-50/40 transition-all">
+                  <td className="px-8 py-6 font-black text-slate-800">
+                    <div>
+                      <p>{user.name} {user.surname}</p>
+                      <p className="text-[11px] font-normal text-slate-400">{user.email}</p>
+                    </div>
+                  </td>
+
+                  <td className="px-6 py-6 uppercase font-bold text-[10px] text-blue-600">
+                    {user.role}
+                  </td>
+
+                  {/* QUICK ADMIN TOGGLE BADGE */}
+                  <td className="px-6 py-6">
+                    <button
+                      onClick={() => handleQuickToggleAdmin(user._id, user.admin)}
+                      title="Click to toggle admin permission"
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full font-black text-[9px] uppercase tracking-wider transition-all cursor-pointer ${
+                        user.admin
+                          ? "bg-amber-100 text-amber-800 hover:bg-amber-200"
+                          : "bg-slate-100 text-slate-400 hover:bg-slate-200"
+                      }`}
+                    >
+                      {user.admin ? <ShieldCheck size={12} /> : <ShieldAlert size={12} />}
+                      {user.admin ? "Admin" : "User"}
+                    </button>
+                  </td>
+
+                  <td className="px-8 py-6 text-right">
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => navigate(`/admin/user/${user._id}`)}
+                        className="p-3 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all"
+                        title="View Profile"
+                      >
+                        <Eye size={18} />
+                      </button>
+                      <button
+                        onClick={() => handleEditClick(user)}
+                        className="p-3 bg-slate-50 text-slate-400 rounded-xl hover:bg-slate-800 hover:text-white transition-all"
+                        title="Edit User"
+                      >
+                        <Edit3 size={18} />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteUser(user._id, user.name)}
+                        className="p-3 bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-600 hover:text-white transition-all"
+                        title="Delete User"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* EDIT USER MODAL */}
+        {editingUser && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex justify-center items-center p-4 z-50 overflow-y-auto">
+            <div className="bg-white w-full max-w-lg rounded-[2.5rem] p-8 shadow-2xl max-h-[90vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className="text-2xl font-black uppercase italic">Edit Profile</h2>
+                  <p className="text-xs text-slate-400 font-bold">
+                    Update member records and access controls
+                  </p>
+                </div>
+                <button
+                  onClick={() => setEditingUser(null)}
+                  className="p-2 bg-slate-100 rounded-full hover:bg-slate-200"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {/* Names */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">
+                      First Name
+                    </label>
+                    <input
+                      className="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold text-slate-800 focus:ring-2 focus:ring-blue-500"
+                      value={editForm.name}
+                      onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                      placeholder="First Name"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">
+                      Surname
+                    </label>
+                    <input
+                      className="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold text-slate-800 focus:ring-2 focus:ring-blue-500"
+                      value={editForm.surname}
+                      onChange={(e) => setEditForm({ ...editForm, surname: e.target.value })}
+                      placeholder="Surname"
+                    />
+                  </div>
+                </div>
+
+                {/* Email */}
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    className="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold text-slate-800 focus:ring-2 focus:ring-blue-500"
+                    value={editForm.email}
+                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    placeholder="Email Address"
+                  />
+                </div>
+
+                {/* Role & Level */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">
+                      Account Role
+                    </label>
+                    <select
+                      className="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold text-slate-800 focus:ring-2 focus:ring-blue-500"
+                      value={editForm.role}
+                      onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                    >
+                      <option value="learner">Learner / Student</option>
+                      <option value="parent">Parent</option>
+                      <option value="child">Child</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">
+                      Academic Level
+                    </label>
+                    <select
+                      className="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold text-slate-800 focus:ring-2 focus:ring-blue-500"
+                      value={editForm.level}
+                      onChange={(e) => setEditForm({ ...editForm, level: e.target.value })}
+                    >
+                      <option value="Basic 7">Basic 7</option>
+                      <option value="Basic 8">Basic 8</option>
+                      <option value="Basic 9">Basic 9</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Age & Phone */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">
+                      Age
+                    </label>
+                    <input
+                      type="number"
+                      className="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold text-slate-800 focus:ring-2 focus:ring-blue-500"
+                      value={editForm.age}
+                      onChange={(e) => setEditForm({ ...editForm, age: e.target.value })}
+                      placeholder="Age"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">
+                      Phone Number
+                    </label>
+                    <input
+                      type="tel"
+                      className="w-full p-4 bg-slate-50 rounded-2xl outline-none font-bold text-slate-800 focus:ring-2 focus:ring-blue-500"
+                      value={editForm.phoneNumber}
+                      onChange={(e) => setEditForm({ ...editForm, phoneNumber: e.target.value })}
+                      placeholder="Phone Number"
+                    />
+                  </div>
+                </div>
+
+                {/* Account Status / Verified Toggle */}
+                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+                  <div>
+                    <p className="font-bold text-slate-800 text-xs">Email Verified</p>
+                    <p className="text-[10px] text-slate-400 font-medium">
+                      Grant account verified status
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={editForm.isVerified}
+                    onChange={(e) => setEditForm({ ...editForm, isVerified: e.target.checked })}
+                    className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 cursor-pointer"
+                  />
+                </div>
+
+                {/* Admin Access Privilege Toggle */}
+                <div className="flex items-center justify-between p-4 bg-amber-50/60 border border-amber-100 rounded-2xl">
+                  <div>
+                    <p className="font-bold text-amber-900 text-xs">Administrator Privilege</p>
+                    <p className="text-[10px] text-amber-600 font-medium">
+                      Grant full administrative rights
+                    </p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={editForm.admin}
+                    onChange={(e) => setEditForm({ ...editForm, admin: e.target.checked })}
+                    className="w-5 h-5 text-amber-600 rounded focus:ring-amber-500 cursor-pointer"
+                  />
+                </div>
+
+                {/* Save Button */}
+                <button
+                  onClick={handleUpdate}
+                  className="w-full bg-blue-600 text-white py-5 rounded-[1.5rem] font-black uppercase text-xs tracking-wider shadow-lg shadow-blue-200 hover:bg-slate-900 transition-all mt-4 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Save size={18} /> Save Changes
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </>
   );
 }
