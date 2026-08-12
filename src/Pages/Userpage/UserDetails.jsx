@@ -514,7 +514,7 @@ export default function UserDetails() {
                 </span>
               </div>
               <div className="flex justify-between items-center border-b border-slate-50 pb-3">
-                <span className="text-slate-400 font-bold text-xs uppercase">Last Updated</span>
+                <span className="text-slate-400 font-bold text-xs uppercase">Last Seen</span>
                 <span className="font-black text-slate-700">
                   {user.updatedAt ? new Date(user.updatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : "N/A"}
                 </span>
