@@ -28,6 +28,19 @@ export default function AdminDashboard() {
     admin: false,
   });
 
+  // Level mapping dictionary
+  const levelToBackendMap = {
+    "Basic 7": "JHS 1",
+    "Basic 8": "JHS 2",
+    "Basic 9": "JHS 3",
+  };
+
+  const levelToFrontendMap = {
+    "JHS 1": "Basic 7",
+    "JHS 2": "Basic 8",
+    "JHS 3": "Basic 9",
+  };
+
   useEffect(() => { 
     fetchUsers(); 
   }, []);
@@ -45,15 +58,18 @@ export default function AdminDashboard() {
   };
 
   const handleEditClick = (user) => {
+    const rawLevel = user.learningProfile?.level || user.level || "Basic 7";
+    const displayLevel = levelToFrontendMap[rawLevel] || rawLevel;
+
     setEditingUser(user);
     setEditForm({
       name: user.name || "",
       surname: user.surname || "",
       email: user.email || "",
       role: user.role || "learner",
-      level: user.learningProfile?.level || "Basic 7",
-      age: user.learningProfile?.age || "",
-      phoneNumber: user.parentDetails?.phoneNumber || "",
+      level: displayLevel,
+      age: user.learningProfile?.age || user.age || "",
+      phoneNumber: user.parentDetails?.phoneNumber || user.phoneNumber || "",
       isVerified: user.isVerified ?? true,
       admin: user.admin ?? false,
     });
@@ -61,6 +77,8 @@ export default function AdminDashboard() {
 
   const handleUpdate = async () => {
     try {
+      const backendLevel = levelToBackendMap[editForm.level] || editForm.level;
+
       const res = await fetch(`${API_BASE_URL}auth/adminupdate-user/${editingUser._id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -69,7 +87,7 @@ export default function AdminDashboard() {
           surname: editForm.surname,
           email: editForm.email,
           role: editForm.role,
-          level: editForm.level,
+          level: backendLevel,
           age: editForm.age,
           phoneNumber: editForm.phoneNumber,
           isVerified: editForm.isVerified,
@@ -134,7 +152,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // Helper function to dynamically format and prevent duplicate surnames
   const formatFullName = (name, surname) => {
     if (!name) return surname || "";
     if (!surname) return name;
@@ -145,7 +162,16 @@ export default function AdminDashboard() {
     return `${name} ${surname}`.trim();
   };
 
-  // Derived role counts
+  // Helper to format level display for learners & children
+  const getUserDisplayLevel = (user) => {
+    if (user.role !== "learner" && user.role !== "child") {
+      return "—";
+    }
+    const rawLevel = user.learningProfile?.level || user.level;
+    if (!rawLevel) return "Not set";
+    return levelToFrontendMap[rawLevel] || rawLevel;
+  };
+
   const totalUsers = users.length;
   const learnerCount = users.filter((u) => u.role === "learner").length;
   const parentCount = users.filter((u) => u.role === "parent").length;
@@ -177,7 +203,6 @@ export default function AdminDashboard() {
         <div className="max-w-7xl mx-auto mb-8 sm:mb-10">
           <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 mb-8">
             
-            {/* Title */}
             <div className="flex items-center gap-3">
               <div className="p-3 bg-blue-600 rounded-2xl text-white shrink-0">
                 <Shield size={24} />
@@ -190,7 +215,6 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            {/* Quick Action Buttons */}
             <div className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center gap-3 w-full lg:w-auto">
               <Link
                 to={"/all-subjects"}
@@ -318,11 +342,12 @@ export default function AdminDashboard() {
 
         {/* USERS TABLE CONTAINER */}
         <div className="max-w-7xl mx-auto bg-white rounded-3xl sm:rounded-[2.5rem] shadow-sm border border-slate-100 overflow-x-auto">
-          <table className="w-full text-left min-w-[650px]">
+          <table className="w-full text-left min-w-[700px]">
             <thead>
               <tr className="bg-slate-50 border-b text-[10px] font-black uppercase tracking-widest text-slate-400">
                 <th className="px-6 sm:px-8 py-5 sm:py-6">Identity</th>
                 <th className="px-4 sm:px-6 py-5 sm:py-6">Role</th>
+                <th className="px-4 sm:px-6 py-5 sm:py-6">Academic Level</th>
                 <th className="px-4 sm:px-6 py-5 sm:py-6">Admin Access</th>
                 <th className="px-6 sm:px-8 py-5 sm:py-6 text-right">Actions</th>
               </tr>
@@ -330,7 +355,7 @@ export default function AdminDashboard() {
             <tbody className="divide-y divide-slate-50">
               {filteredUsers.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-8 py-10 text-center text-slate-400 font-medium">
+                  <td colSpan={5} className="px-8 py-10 text-center text-slate-400 font-medium">
                     No users found matching the selected criteria.
                   </td>
                 </tr>
@@ -339,7 +364,6 @@ export default function AdminDashboard() {
                   <tr key={user._id} className="hover:bg-slate-50/40 transition-all">
                     <td className="px-6 sm:px-8 py-5 sm:py-6 font-black text-slate-800">
                       <div>
-                        {/* CLEAN DYNAMIC NAME DISPLAY */}
                         <p>{formatFullName(user.name, user.surname)}</p>
                         <p className="text-[11px] font-normal text-slate-400 break-all">{user.email}</p>
                       </div>
@@ -357,7 +381,17 @@ export default function AdminDashboard() {
                       </span>
                     </td>
 
-                    {/* QUICK ADMIN TOGGLE BADGE */}
+                    {/* ACADEMIC LEVEL COLUMN */}
+                    <td className="px-4 sm:px-6 py-5 sm:py-6 whitespace-nowrap font-bold text-xs text-slate-700">
+                      {user.role === "learner" || user.role === "child" ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 text-slate-800 font-bold text-xs">
+                          {getUserDisplayLevel(user)}
+                        </span>
+                      ) : (
+                        <span className="text-slate-300 font-normal">—</span>
+                      )}
+                    </td>
+
                     <td className="px-4 sm:px-6 py-5 sm:py-6 whitespace-nowrap">
                       <button
                         onClick={() => handleQuickToggleAdmin(user._id, user.admin)}
@@ -425,7 +459,6 @@ export default function AdminDashboard() {
               </div>
 
               <div className="space-y-4">
-                {/* Names */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">
@@ -451,7 +484,6 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                {/* Email */}
                 <div>
                   <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">
                     Email Address
@@ -465,7 +497,6 @@ export default function AdminDashboard() {
                   />
                 </div>
 
-                {/* Role & Level */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">
@@ -498,7 +529,6 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                {/* Age & Phone */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-black uppercase text-slate-400 mb-1">
@@ -527,7 +557,6 @@ export default function AdminDashboard() {
                   </div>
                 </div>
 
-                {/* Account Status / Verified Toggle */}
                 <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
                   <div>
                     <p className="font-bold text-slate-800 text-xs">Email Verified</p>
@@ -543,7 +572,6 @@ export default function AdminDashboard() {
                   />
                 </div>
 
-                {/* Admin Access Privilege Toggle */}
                 <div className="flex items-center justify-between p-4 bg-amber-50/60 border border-amber-100 rounded-2xl">
                   <div>
                     <p className="font-bold text-amber-900 text-xs">Administrator Privilege</p>
@@ -559,7 +587,6 @@ export default function AdminDashboard() {
                   />
                 </div>
 
-                {/* Save Button */}
                 <button
                   onClick={handleUpdate}
                   className="w-full bg-blue-600 text-white py-4 sm:py-5 rounded-[1.5rem] font-black uppercase text-xs tracking-wider shadow-lg shadow-blue-200 hover:bg-slate-900 transition-all mt-4 flex items-center justify-center gap-2 cursor-pointer"
