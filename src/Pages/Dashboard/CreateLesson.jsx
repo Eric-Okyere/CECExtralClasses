@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom"; // 1. Import useNavigate
+import { useNavigate } from "react-router-dom";
 import { 
   Video, Plus, Trash2, BookOpen, Layers, 
   Save, X, Type, Loader2, Play 
@@ -7,13 +7,17 @@ import {
 import { API_BASE_URL } from "../../services/BaseUrl";
 
 export default function CreateLesson() {
-  const navigate = useNavigate(); // 2. Initialize navigate
-  const [subjects, setSubjects] = useState([]);
+  const navigate = useNavigate();
+  
+  // All subjects loaded from backend
+  const [allSubjects, setAllSubjects] = useState([]);
+  
+  // Filtered dropdown options
+  const [availableSubjects, setAvailableSubjects] = useState([]);
   const [strands, setStrands] = useState([]);
   const [subStrands, setSubStrands] = useState([]);
+  
   const [loading, setLoading] = useState(false);
-
-  // Reference for the questions scroll container
   const scrollContainerRef = useRef(null);
 
   const [form, setForm] = useState({
@@ -28,34 +32,87 @@ export default function CreateLesson() {
     quiz: [],
   });
 
-  const levels = ["JHS 1", "JHS 2", "JHS 3"];
+  const levels = ["Basic 7", "Basic 8", "Basic 9"];
 
+  const levelToBackendMap = {
+    "Basic 7": "JHS 1",
+    "Basic 8": "JHS 2",
+    "Basic 9": "JHS 3",
+  };
+
+  // 1. Fetch all subjects once on mount
   useEffect(() => {
     fetch(`${API_BASE_URL}subjects`)
       .then((res) => res.json())
-      .then((data) => setSubjects(data.data || data)) 
+      .then((data) => {
+        const fetched = data.data || data;
+        setAllSubjects(Array.isArray(fetched) ? fetched : []);
+      }) 
       .catch(console.error);
   }, []);
 
+  // 2. Handle Level Change -> Filter subjects available for this level
+  const handleLevelChange = (e) => {
+    const selectedLevel = e.target.value;
+
+    // Reset dependent form fields
+    setForm((prev) => ({
+      ...prev,
+      level: selectedLevel,
+      subjectId: "",
+      subjectName: "",
+      strand: "",
+      subStrand: "",
+    }));
+
+    setStrands([]);
+    setSubStrands([]);
+
+    if (!selectedLevel) {
+      setAvailableSubjects([]);
+      return;
+    }
+
+    // Filter subjects matching the selected level (or fallback to all if subjects aren't scoped by level in backend)
+    const filtered = allSubjects.filter((s) => {
+      if (!s.level) return true; // If backend subject has no level restriction, show it
+      return s.level === selectedLevel || s.level === levelToBackendMap[selectedLevel];
+    });
+
+    setAvailableSubjects(filtered.length > 0 ? filtered : allSubjects);
+  };
+
+  // 3. Handle Subject Change -> Populate strands for this subject
   const handleSubjectChange = (e) => {
     const subjectId = e.target.value;
-    const selected = subjects.find((s) => s._id === subjectId);
-    setForm({ 
-      ...form, 
+    const selected = availableSubjects.find((s) => s._id === subjectId);
+
+    setForm((prev) => ({ 
+      ...prev, 
       subjectId, 
-      subjectName: selected?.name || "", 
+      subjectName: selected?.name || selected?.title || "", 
       strand: "", 
       subStrand: "" 
-    });
-    setStrands(selected ? selected.strands : []);
+    }));
+
+    setStrands(selected ? selected.strands || [] : []);
     setSubStrands([]);
   };
 
+  // 4. Handle Strand Change -> Populate sub-strands for this strand
   const handleStrandChange = (e) => {
     const strandTitle = e.target.value;
-    const selected = strands.find((s) => s.title === strandTitle);
-    setForm({ ...form, strand: strandTitle, subStrand: "" });
-    setSubStrands(selected ? selected.subStrands : []);
+    const selected = strands.find(
+      (s) => (typeof s === "object" ? s.title || s.name : s) === strandTitle
+    );
+
+    setForm((prev) => ({ ...prev, strand: strandTitle, subStrand: "" }));
+
+    if (selected && typeof selected === "object") {
+      setSubStrands(selected.subStrands || selected.substrands || []);
+    } else {
+      setSubStrands([]);
+    }
   };
 
   // --- VIDEO HANDLERS ---
@@ -105,7 +162,6 @@ export default function CreateLesson() {
     setForm({ ...form, quiz: updated });
   };
 
-  // --- REMOVE QUESTION HANDLER WITH CONFIRMATION ---
   const removeQuestion = (index) => {
     if (window.confirm("Are you sure you want to delete this question?")) {
       setForm({ ...form, quiz: form.quiz.filter((_, i) => i !== index) });
@@ -119,11 +175,14 @@ export default function CreateLesson() {
     if (form.quiz.length === 0) return alert("Add at least one question.");
     
     setLoading(true);
+
+    const backendLevel = levelToBackendMap[form.level] || form.level;
+
     const formData = new FormData();
     formData.append("lessonNumber", form.lessonNumber);
     formData.append("lessonName", form.lessonName);
     formData.append("subject", form.subjectName);
-    formData.append("level", form.level);
+    formData.append("level", backendLevel);
     formData.append("strand", form.strand);
     formData.append("subStrand", form.subStrand);
     
@@ -138,7 +197,10 @@ export default function CreateLesson() {
       });
       if (res.ok) {
         alert("Lesson published!");
-        navigate("/manage-lessons"); // 3. Navigate after successful submit
+        navigate("/manage-lessons");
+      } else {
+        const errorData = await res.json();
+        alert(errorData.msg || "Failed to publish lesson.");
       }
     } catch (err) {
       alert("Error publishing lesson.");
@@ -152,7 +214,7 @@ export default function CreateLesson() {
       <div className="max-w-6xl mx-auto">
         <header className="mb-10">
           <h1 className="text-4xl font-black text-slate-900 uppercase italic tracking-tight">Lesson Builder</h1>
-          <p className="text-slate-500 font-medium">Create interactive curriculum assets for JHS students.</p>
+          <p className="text-slate-500 font-medium">Create interactive curriculum assets for Basic level students.</p>
         </header>
 
         <form onSubmit={handleSubmit} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
@@ -191,24 +253,67 @@ export default function CreateLesson() {
 
               <hr className="border-slate-100 my-2" />
 
-              <select required value={form.level} onChange={(e) => setForm({...form, level: e.target.value})} className="w-full p-3 bg-slate-50 border-none rounded-xl text-xs font-bold uppercase focus:ring-2 ring-blue-500">
-                <option value="">Select Level</option>
+              {/* LEVEL SELECT */}
+              <select 
+                required 
+                value={form.level} 
+                onChange={handleLevelChange} 
+                className="w-full p-3 bg-slate-50 border-none rounded-xl text-xs font-bold uppercase focus:ring-2 ring-blue-500"
+              >
+                <option value="">Select Level / Class</option>
                 {levels.map(l => <option key={l} value={l}>{l}</option>)}
               </select>
 
-              <select required value={form.subjectId} onChange={handleSubjectChange} className="w-full p-3 bg-slate-50 border-none rounded-xl text-xs font-bold uppercase focus:ring-2 ring-blue-500">
-                <option value="">Select Subject</option>
-                {subjects.map(s => <option key={s._id} value={s._id}>{s.name}</option>)}
+              {/* SUBJECT SELECT - Dependent on Level */}
+              <select 
+                required 
+                disabled={!form.level}
+                value={form.subjectId} 
+                onChange={handleSubjectChange} 
+                className="w-full p-3 bg-slate-50 border-none rounded-xl text-xs font-bold uppercase focus:ring-2 ring-blue-500 disabled:opacity-50"
+              >
+                <option value="">
+                  {!form.level ? "Select Class First" : "Select Subject"}
+                </option>
+                {availableSubjects.map(s => (
+                  <option key={s._id} value={s._id}>
+                    {typeof s === "object" ? s.name || s.title : s}
+                  </option>
+                ))}
               </select>
 
-              <select required value={form.strand} onChange={handleStrandChange} className="w-full p-3 bg-slate-50 border-none rounded-xl text-xs font-bold uppercase focus:ring-2 ring-blue-500">
-                <option value="">Select Strand</option>
-                {strands.map(s => <option key={s.title} value={s.title}>{s.title}</option>)}
+              {/* STRAND SELECT - Dependent on Subject */}
+              <select 
+                required 
+                disabled={!form.subjectId}
+                value={form.strand} 
+                onChange={handleStrandChange} 
+                className="w-full p-3 bg-slate-50 border-none rounded-xl text-xs font-bold uppercase focus:ring-2 ring-blue-500 disabled:opacity-50"
+              >
+                <option value="">
+                  {!form.subjectId ? "Select Subject First" : "Select Strand"}
+                </option>
+                {strands.map((s, i) => {
+                  const title = typeof s === "object" ? (s.title || s.name) : s;
+                  return <option key={s._id || i} value={title}>{title}</option>;
+                })}
               </select>
 
-              <select required value={form.subStrand} onChange={(e) => setForm({...form, subStrand: e.target.value})} className="w-full p-3 bg-slate-50 border-none rounded-xl text-xs font-bold uppercase focus:ring-2 ring-blue-500">
-                <option value="">Select Sub-strand</option>
-                {subStrands.map((ss, i) => <option key={i} value={ss}>{ss}</option>)}
+              {/* SUB-STRAND SELECT - Dependent on Strand */}
+              <select 
+                required 
+                disabled={!form.strand}
+                value={form.subStrand} 
+                onChange={(e) => setForm({...form, subStrand: e.target.value})} 
+                className="w-full p-3 bg-slate-50 border-none rounded-xl text-xs font-bold uppercase focus:ring-2 ring-blue-500 disabled:opacity-50"
+              >
+                <option value="">
+                  {!form.strand ? "Select Strand First" : "Select Sub-strand"}
+                </option>
+                {subStrands.map((ss, i) => {
+                  const title = typeof ss === "object" ? (ss.title || ss.name) : ss;
+                  return <option key={i} value={title}>{title}</option>;
+                })}
               </select>
             </section>
 
