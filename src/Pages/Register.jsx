@@ -57,8 +57,8 @@ const handleRegister = async () => {
       setMessage("Passwords do not match.");
       return;
     }
-    if (password.length < 5) {
-      setMessage("Password must be at least 5 characters.");
+    if (password.length < 8) {
+      setMessage("Password must be at least 8 characters.");
       return;
     }
 
@@ -70,7 +70,8 @@ const handleRegister = async () => {
       await registerUser({ name, surname, email, password });
      
       // Redirect to Verify Email page (pass email so they don't have to re-type it)
-      navigate("/verify-email", { state: { email } });
+      sessionStorage.setItem("pendingVerificationEmail", email.trim().toLowerCase());
+      navigate("/verify-email", { state: { email: email.trim().toLowerCase() } });
       
     } catch (err) {
       setMessage(err || "Connection to server failed");
@@ -161,7 +162,7 @@ const handleRegister = async () => {
                 name="password"
                 type="password" 
                 className="w-full pl-11 p-4 bg-gray-50 border border-transparent rounded-2xl outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all text-sm font-medium" 
-                placeholder="Min. 5 characters" 
+                placeholder="Min. 8 characters" 
                 value={formData.password} 
                 onChange={handleChange} 
               />

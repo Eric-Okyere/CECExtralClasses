@@ -181,7 +181,7 @@ export default function CreateLesson() {
     const formData = new FormData();
     formData.append("lessonNumber", form.lessonNumber);
     formData.append("lessonName", form.lessonName);
-    formData.append("subject", form.subjectName);
+    formData.append("subject", form.subjectId || form.subjectName); // backend expects the subject's id
     formData.append("level", backendLevel);
     formData.append("strand", form.strand);
     formData.append("subStrand", form.subStrand);

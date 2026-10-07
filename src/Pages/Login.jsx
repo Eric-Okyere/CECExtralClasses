@@ -33,7 +33,12 @@ const isProfileComplete = (user) => {
 };
 
 export default function Login() {
-  const [error, setError] = useState("");
+  // Shown when the session timed out and the user was sent back here.
+  const [error, setError] = useState(() =>
+    new URLSearchParams(window.location.search).get("expired")
+      ? "Your session has expired. Please sign in again."
+      : ""
+  );
   const [loading, setLoading] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("");
   const [agreed, setAgreed] = useState(false);

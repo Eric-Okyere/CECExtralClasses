@@ -176,14 +176,16 @@ export default function LessonView() {
           targetLesson = allLessons.find((l) => {
             if (lessonIdFromUrl && l._id === lessonIdFromUrl) return true;
 
-            const matchSubject = l.subject?.toLowerCase() === subject?.toLowerCase();
-            const matchLevel = l.level?.toLowerCase() === level?.toLowerCase();
+            // subject comes back populated as { name, level }; older records may be a plain string
+            const lSubject = typeof l.subject === "object" && l.subject !== null ? l.subject.name : l.subject;
+            const matchSubject = String(lSubject || "").toLowerCase() === String(subject || "").toLowerCase();
+            const matchLevel = String(l.level || "").toLowerCase() === String(level || "").toLowerCase();
             
             if (lessonNumber) {
               return matchSubject && matchLevel && String(l.lessonNumber) === String(lessonNumber);
             }
 
-            const lSubStrand = typeof l.subStrand === "object" ? l.subStrand.title : l.subStrand;
+            const lSubStrand = typeof l.subStrand === "object" && l.subStrand !== null ? l.subStrand.title : l.subStrand;
             const matchSubStrand = lSubStrand?.toLowerCase() === decodedSub || 
                                    lSubStrand?.toLowerCase().includes(decodedSub);
 

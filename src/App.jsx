@@ -27,6 +27,7 @@ import NotFound from "./Pages/NotFound";
 import AdminFeedback from "./Pages/Dashboard/AdminFeedback";
 import FeedbackModal from "./components/FeedbackModal";
 import AdminRoute from "./Pages/Dashboard/AdminRoute";
+import PaymentSuccess from "./Pages/PaymentSuccess";
 
 // Helper component that checks the current path before showing FeedbackModal
 function ConditionalFeedbackModal() {
@@ -70,6 +71,7 @@ function App() {
         <Route path="/verify-email" element={<VerifyEmail />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<Terms />} />
+        <Route path="/payment-success" element={<PaymentSuccess />} />
         <Route path="/lesson/:subject/:level/:subStrand/:lessonNumber?" element={<LessonView />} />
 
         {/* GENERAL USER PROTECTED ROUTES */}
