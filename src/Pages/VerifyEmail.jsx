@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Mail, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
 import { API_BASE_URL } from "../services/BaseUrl";
@@ -51,6 +51,16 @@ export default function VerifyEmail() {
       setResending(false);
     }
   };
+
+  // Coming from the login page with an unverified account: send a fresh code once.
+  const autoResent = useRef(false);
+  useEffect(() => {
+    if (location.state?.resend && email && !autoResent.current) {
+      autoResent.current = true;
+      handleResend();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const handleChange = (element, index) => {
     if (!/^\d?$/.test(element.value)) return false;

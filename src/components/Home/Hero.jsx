@@ -33,7 +33,7 @@ export default function Hero() {
           </div>
 
           {!signedIn && (
-            <p className="mt-5 text-sm text-slate-ink">Sign in with your Google account to begin.</p>
+            <p className="mt-5 text-sm text-slate-ink">Sign in with Google or your email address to begin.</p>
           )}
         </div>
 

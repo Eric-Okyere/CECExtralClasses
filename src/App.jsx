@@ -28,6 +28,7 @@ import AdminFeedback from "./Pages/Dashboard/AdminFeedback";
 import FeedbackModal from "./components/FeedbackModal";
 import AdminRoute from "./Pages/Dashboard/AdminRoute";
 import PaymentSuccess from "./Pages/PaymentSuccess";
+import ForgotPassword from "./Pages/ForgotPassword";
 
 // Helper component that checks the current path before showing FeedbackModal
 function ConditionalFeedbackModal() {
@@ -37,6 +38,8 @@ function ConditionalFeedbackModal() {
   const excludedPaths = [
     '/login',
     '/register',
+    '/verify-email',
+    '/forgot-password',
     '/admindashboard',
     '/all-subjects',
     '/create-subject',
@@ -69,6 +72,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/terms" element={<Terms />} />
         <Route path="/payment-success" element={<PaymentSuccess />} />

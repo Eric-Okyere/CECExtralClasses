@@ -15,7 +15,7 @@ import { API_BASE_URL } from "./BaseUrl";
 const API_ORIGIN_PATH = API_BASE_URL.replace(/\/$/, "");
 
 // Endpoints where a 401 means "wrong password" etc., not "session expired".
-const AUTH_ENDPOINTS = ["auth/login", "auth/register", "auth/google-login", "auth/verify-email", "auth/resend-verification"];
+const AUTH_ENDPOINTS = ["auth/login", "auth/register", "auth/google-login", "auth/verify-email", "auth/resend-verification", "auth/forgot-password", "auth/reset-password"];
 
 const isApiUrl = (url) => typeof url === "string" && url.startsWith(API_ORIGIN_PATH);
 const isAuthEndpoint = (url) => AUTH_ENDPOINTS.some((p) => url.includes(p));

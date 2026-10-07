@@ -90,6 +90,64 @@ export default function Login() {
     }
   }, [navigate]);
 
+  // --- AFTER ANY SUCCESSFUL SIGN-IN (Google or email) ---
+  const finishLogin = (data, welcome = "Welcome back! Redirecting...") => {
+    localStorage.setItem("token", data.token);
+    localStorage.setItem("user", JSON.stringify(data.user));
+    setLoggedInUser(data.user);
+
+    // New user or profile not finished -> show the profile setup form
+    if (data.isNewUser || !isProfileComplete(data.user)) {
+      setShowModal(true);
+      setLoading(false);
+    } else {
+      setLoadingMessage(welcome);
+      navigate("/", { replace: true });
+    }
+  };
+
+  // --- EMAIL + PASSWORD LOGIN ---
+  const [credentials, setCredentials] = useState({ email: "", password: "" });
+
+  const handleEmailLogin = async (e) => {
+    e.preventDefault();
+    const email = credentials.email.trim().toLowerCase();
+    if (!email || !credentials.password) {
+      setError("Enter your email and password.");
+      return;
+    }
+
+    setLoading(true);
+    setLoadingMessage("Signing you in...");
+    setError("");
+
+    try {
+      const res = await fetch(getApiUrl("auth/login"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password: credentials.password }),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (res.ok) {
+        finishLogin(data);
+        return;
+      }
+
+      setLoading(false);
+      if (data.needsVerification) {
+        // Account exists but email isn't confirmed yet: send a fresh code and go verify.
+        sessionStorage.setItem("pendingVerificationEmail", email);
+        navigate("/verify-email", { state: { email, resend: true } });
+        return;
+      }
+      setError(data.msg || "Wrong email or password.");
+    } catch {
+      setError("Could not reach the server. Check your connection and try again.");
+      setLoading(false);
+    }
+  };
+
   // --- GOOGLE LOGIN HANDLER ---
   const handleGoogleSuccess = async (credentialResponse) => {
     setLoading(true);
@@ -110,18 +168,7 @@ export default function Login() {
       const data = await res.json();
 
       if (res.ok) {
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
-        setLoggedInUser(data.user);
-
-        // Check if new user OR existing user without completed profile
-        if (data.isNewUser || !isProfileComplete(data.user)) {
-          setShowModal(true);
-          setLoading(false);
-        } else {
-          setLoadingMessage("Welcome back! Redirecting...");
-          navigate("/", { replace: true });
-        }
+        finishLogin(data);
       } else {
         setError(data.msg || "Google authentication failed.");
         setLoading(false);
@@ -275,10 +322,68 @@ export default function Login() {
           </div>
         )}
 
-        <GoogleLogin
-          onSuccess={handleGoogleSuccess}
-          onError={() => setError("Google Login Failed")}
-        />
+        <div className="flex justify-center">
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={() => setError("Google sign-in failed. Try again or use your email.")}
+            width="320"
+          />
+        </div>
+
+        <div className="flex items-center gap-3 my-6" aria-hidden="true">
+          <span className="h-px flex-1 bg-slate-200" />
+          <span className="text-xs text-slate-400">or sign in with email</span>
+          <span className="h-px flex-1 bg-slate-200" />
+        </div>
+
+        <form onSubmit={handleEmailLogin} className="space-y-4" noValidate>
+          <div>
+            <label htmlFor="login-email" className="block text-sm font-semibold text-slate-700 mb-1.5">
+              Email
+            </label>
+            <input
+              id="login-email"
+              type="email"
+              autoComplete="email"
+              value={credentials.email}
+              onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm focus:border-blue-500 focus:bg-white outline-none"
+              placeholder="you@example.com"
+            />
+          </div>
+          <div>
+            <div className="flex items-baseline justify-between mb-1.5">
+              <label htmlFor="login-password" className="block text-sm font-semibold text-slate-700">
+                Password
+              </label>
+              <Link to="/forgot-password" className="text-xs font-semibold text-blue-600 hover:underline">
+                Forgot password?
+              </Link>
+            </div>
+            <input
+              id="login-password"
+              type="password"
+              autoComplete="current-password"
+              value={credentials.password}
+              onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm focus:border-blue-500 focus:bg-white outline-none"
+            />
+          </div>
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded-xl bg-blue-600 py-3.5 text-sm font-bold text-white hover:bg-blue-700 disabled:bg-slate-300 transition-colors"
+          >
+            Sign in
+          </button>
+        </form>
+
+        <p className="mt-5 text-center text-sm text-slate-500">
+          New to CEC Extra Classes?{" "}
+          <Link to="/register" className="font-bold text-blue-600 hover:underline">
+            Create an account
+          </Link>
+        </p>
 
         <div className="pt-6 mt-6 border-t border-slate-50 grid grid-cols-2 gap-3">
           <a
