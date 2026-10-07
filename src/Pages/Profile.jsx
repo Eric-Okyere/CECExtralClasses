@@ -7,6 +7,7 @@ import {
 } from "react-icons/hi";
 import { API_BASE_URL } from "../services/BaseUrl";
 import Navbar from "../components/Navbar";
+import Avatar from "../components/Avatar";
 
 const Loader2 = ({ className }) => (
   <div className={`w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin ${className}`} />
@@ -159,9 +160,12 @@ export default function Profile() {
             <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
               <div className="relative">
                 <div className="absolute inset-0 bg-yellow-400 rounded-[2.5rem] rotate-6 scale-105 opacity-20"></div>
-                <div className="w-36 h-36 bg-gradient-to-br from-yellow-300 to-yellow-500 rounded-[2.5rem] flex items-center justify-center text-blue-900 text-5xl font-black relative z-10 shadow-2xl uppercase">
-                  {user.name?.charAt(0)}
-                </div>
+                <Avatar
+                  src={user.picture || user.parentId?.picture}
+                  name={user.name}
+                  className="w-36 h-36 rounded-[2.5rem] relative z-10 shadow-2xl"
+                  fallbackClassName="bg-gradient-to-br from-yellow-300 to-yellow-500 text-blue-900 text-5xl font-black"
+                />
               </div>
 
               <div className="flex-1 text-center md:text-left">

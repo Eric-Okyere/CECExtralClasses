@@ -6,6 +6,7 @@ import {
   Users, GraduationCap, UserCheck, Baby 
 } from "lucide-react";
 import { API_BASE_URL } from "../../services/BaseUrl";
+import Avatar from "../../components/Avatar";
 import Navbar from "../../components/Navbar";
 
 export default function AdminDashboard() {
@@ -363,9 +364,17 @@ export default function AdminDashboard() {
                 filteredUsers.map((user) => (
                   <tr key={user._id} className="hover:bg-slate-50/40 transition-all">
                     <td className="px-6 sm:px-8 py-5 sm:py-6 font-black text-slate-800">
-                      <div>
-                        <p>{formatFullName(user.name, user.surname)}</p>
-                        <p className="text-[11px] font-normal text-slate-400 break-all">{user.email}</p>
+                      <div className="flex items-center gap-3">
+                        <Avatar
+                          src={user.picture}
+                          name={user.name}
+                          className="w-10 h-10 rounded-xl"
+                          fallbackClassName="bg-indigo-50 text-indigo-600 font-black text-sm"
+                        />
+                        <div>
+                          <p>{formatFullName(user.name, user.surname)}</p>
+                          <p className="text-[11px] font-normal text-slate-400 break-all">{user.email}</p>
+                        </div>
                       </div>
                     </td>
 

@@ -7,6 +7,7 @@ import {
 import { MdHome, MdSubject } from "react-icons/md";
 import { API_BASE_URL } from "../services/BaseUrl";
 import Logo from "../assets/Logo.jpeg";
+import Avatar from "./Avatar";
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -212,9 +213,12 @@ export default function Navbar() {
                       : 'bg-ink/80 border-white/20 hover:bg-ink'
                   }`}
                 >
-                  <div className="w-7 h-7 bg-gradient-to-tr from-flame to-flame-deep rounded-full flex items-center justify-center text-ink-deep font-extrabold text-xs shadow-md">
-                    {user.name?.charAt(0)}
-                  </div>
+                  <Avatar
+                    src={user.picture}
+                    name={user.name}
+                    className="w-7 h-7 rounded-full shadow-md"
+                    fallbackClassName="bg-gradient-to-tr from-flame to-flame-deep text-ink-deep font-extrabold text-xs"
+                  />
                   <div className="text-left">
                     <p className="text-[10px] font-bold text-white/65 uppercase tracking-widest leading-none mb-0.5">
                       {user.role}
@@ -344,9 +348,12 @@ export default function Navbar() {
               {/* Mobile Profile Card */}
               <div className="flex items-center justify-between p-3 bg-ink/80 rounded-xl border border-white/15">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-flame text-ink-deep rounded-full flex items-center justify-center font-black text-sm shadow-sm">
-                    {user.name?.charAt(0)}
-                  </div>
+                  <Avatar
+                    src={user.picture}
+                    name={user.name}
+                    className="w-10 h-10 rounded-full shadow-sm"
+                    fallbackClassName="bg-flame text-ink-deep font-black text-sm"
+                  />
                   <div>
                     <p className="text-xs font-bold text-white">{user.name}</p>
                     <p className="text-[10px] font-semibold text-flame uppercase tracking-widest">{user.role}</p>

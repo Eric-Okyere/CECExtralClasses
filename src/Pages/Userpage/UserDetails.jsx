@@ -7,6 +7,7 @@ import {
   HeartPulse, Accessibility, Flame, Lock, FileCheck, Clock
 } from "lucide-react";
 import { API_BASE_URL } from "../../services/BaseUrl";
+import Avatar from "../../components/Avatar";
 
 export default function UserDetails() {
   const { id } = useParams();
@@ -139,17 +140,12 @@ export default function UserDetails() {
           </div>
           
           <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
-            {displayPicture ? (
-              <img 
-                src={displayPicture} 
-                alt={`${getDisplayName(user)}'s profile`} 
-                className="w-32 h-32 rounded-[2.5rem] object-cover shadow-xl shadow-blue-100" 
-              />
-            ) : (
-              <div className="w-32 h-32 bg-gradient-to-br from-blue-600 to-indigo-700 rounded-[2.5rem] flex items-center justify-center text-white text-4xl font-black shadow-xl shadow-blue-100">
-                {getDisplayName(user)?.charAt(0)?.toUpperCase()}
-              </div>
-            )}
+            <Avatar
+              src={displayPicture}
+              name={getDisplayName(user)}
+              className="w-32 h-32 rounded-[2.5rem] shadow-xl shadow-blue-100"
+              fallbackClassName="bg-gradient-to-br from-blue-600 to-indigo-700 text-white text-4xl font-black"
+            />
             
             <div className="text-center md:text-left flex-1">
               <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mb-3">
@@ -295,17 +291,12 @@ export default function UserDetails() {
                       {/* Top Header Card Info */}
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div className="flex items-center gap-4">
-                          {child.picture ? (
-                            <img 
-                              src={child.picture} 
-                              alt={childName} 
-                              className="w-14 h-14 rounded-2xl object-cover shadow-sm" 
-                            />
-                          ) : (
-                            <div className="w-14 h-14 bg-emerald-100 text-emerald-700 font-black rounded-2xl flex items-center justify-center text-xl shadow-sm">
-                              {childName?.charAt(0)?.toUpperCase()}
-                            </div>
-                          )}
+                          <Avatar
+                            src={child.picture}
+                            name={childName}
+                            className="w-14 h-14 rounded-2xl shadow-sm"
+                            fallbackClassName="bg-emerald-100 text-emerald-700 font-black text-xl"
+                          />
                           <div>
                             <div className="flex items-center gap-2">
                               <h4 
