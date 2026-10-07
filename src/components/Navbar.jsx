@@ -172,29 +172,29 @@ export default function Navbar() {
   const activeStyle = ({ isActive }) => 
     `px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wider transition-all duration-200 ${
       isActive 
-        ? "text-yellow-400 bg-white/10 font-bold" 
-        : "text-slate-200 hover:text-white hover:bg-white/5"
+        ? "text-flame bg-white/10 font-bold" 
+        : "text-white/90 hover:text-white hover:bg-white/5"
     }`;
 
   return (
-    <nav className="bg-slate-900/90 backdrop-blur-md border-b border-slate-800 text-white sticky top-0 z-50 font-sans shadow-lg">
+    <nav className="bg-ink-deep/95 backdrop-blur-md border-b border-white/10 text-white sticky top-0 z-50 font-sans shadow-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex justify-between items-center">
         
         {/* LOGO */}
         <Link to="/" className="flex items-center gap-3 group" onClick={() => setMenuOpen(false)}>
-          <div className="relative p-0.5 rounded-xl bg-gradient-to-tr from-yellow-400 to-amber-500 shadow-sm group-hover:scale-105 transition-transform duration-200">
+          <div className="relative p-0.5 rounded-xl bg-gradient-to-tr from-flame to-flame-deep shadow-sm group-hover:scale-105 transition-transform duration-200">
             <img src={Logo} alt="CEC Logo" className="w-9 h-9 rounded-[10px] object-cover" />
           </div>
           <div className="leading-tight">
             <h1 className="font-extrabold text-base tracking-tight text-white flex items-center gap-1.5">
-              CEC <span className="text-yellow-400 font-black">CLASSES</span>
+              CEC <span className="text-flame font-black">Extra Classes</span>
             </h1>
           </div>
         </Link>
 
         {/* DESKTOP NAV */}
         <div className="hidden md:flex items-center gap-6">
-          <div className="flex items-center space-x-1 border-r border-slate-800 pr-6">
+          <div className="flex items-center space-x-1 border-r border-white/10 pr-6">
             <NavLink to="/" className={activeStyle}>HOME</NavLink>
             {user && (
               <NavLink to="/subjects" className={activeStyle}>LESSONS</NavLink>
@@ -206,29 +206,29 @@ export default function Navbar() {
               <div className="relative" ref={dropdownRef}>
                 <button 
                   onClick={() => setDropdownOpen(!dropdownOpen)}
-                  className={`flex items-center gap-3 pl-2.5 pr-3.5 py-1.5 rounded-full border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-yellow-400/50 ${
+                  className={`flex items-center gap-3 pl-2.5 pr-3.5 py-1.5 rounded-full border transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-flame/50 ${
                     user.role === 'child' 
                       ? 'bg-emerald-950/40 border-emerald-500/40 hover:bg-emerald-950/70' 
-                      : 'bg-slate-800/80 border-slate-700 hover:bg-slate-800'
+                      : 'bg-ink/80 border-white/20 hover:bg-ink'
                   }`}
                 >
-                  <div className="w-7 h-7 bg-gradient-to-tr from-yellow-400 to-amber-400 rounded-full flex items-center justify-center text-slate-900 font-extrabold text-xs shadow-md">
+                  <div className="w-7 h-7 bg-gradient-to-tr from-flame to-flame-deep rounded-full flex items-center justify-center text-ink-deep font-extrabold text-xs shadow-md">
                     {user.name?.charAt(0)}
                   </div>
                   <div className="text-left">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest leading-none mb-0.5">
+                    <p className="text-[10px] font-bold text-white/65 uppercase tracking-widest leading-none mb-0.5">
                       {user.role}
                     </p>
                     <p className="text-xs font-semibold leading-none truncate max-w-[100px]">
                       {user.name?.split(' ')[0]}
                     </p>
                   </div>
-                  <HiChevronDown className={`text-slate-400 text-sm transition-transform duration-200 ${dropdownOpen ? "rotate-180 text-yellow-400" : ""}`} />
+                  <HiChevronDown className={`text-white/65 text-sm transition-transform duration-200 ${dropdownOpen ? "rotate-180 text-flame" : ""}`} />
                 </button>
 
                 {/* DESKTOP DROPDOWN MENU */}
                 {dropdownOpen && (
-                  <div className="absolute right-0 mt-3 w-72 bg-slate-900 text-slate-100 rounded-2xl shadow-2xl py-2 border border-slate-800 animate-in fade-in zoom-in-95 duration-150 overflow-hidden z-50">
+                  <div className="absolute right-0 mt-3 w-72 bg-ink-deep text-white rounded-2xl shadow-2xl py-2 border border-white/10 animate-in fade-in zoom-in-95 duration-150 overflow-hidden z-50">
                     
                     {/* Return to Parent Option */}
                     {user.role === 'child' && parentData && (
@@ -243,28 +243,28 @@ export default function Navbar() {
                     )}
 
                     {/* Account Header */}
-                    <div className="px-4 py-3 bg-slate-800/40 border-y border-slate-800/60 mb-1">
-                      <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Signed in as</p>
+                    <div className="px-4 py-3 bg-ink/40 border-y border-white/10 mb-1">
+                      <p className="text-[10px] font-extrabold text-white/65 uppercase tracking-wider">Signed in as</p>
                       <p className="text-xs font-bold text-white truncate mt-0.5">{user.name}</p>
                     </div>
 
                     {/* Parent Quick Switcher */}
                     {user.role === "parent" && linkedChildren.length > 0 && (
                       <div className="px-3 py-2 my-1">
-                        <p className="text-[10px] font-extrabold text-slate-400 uppercase px-2 mb-1.5 tracking-wider flex items-center gap-1.5">
-                          <HiSwitchHorizontal className="text-yellow-400" /> Switch Learner
+                        <p className="text-[10px] font-extrabold text-white/65 uppercase px-2 mb-1.5 tracking-wider flex items-center gap-1.5">
+                          <HiSwitchHorizontal className="text-flame" /> Switch Learner
                         </p>
                         <div className="space-y-1">
                           {linkedChildren.map((child) => (
                             <button
                               key={child._id}
                               onClick={() => handleSwitchToChild(child, false)}
-                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 hover:bg-slate-800 rounded-xl transition-colors text-left group"
+                              className="w-full flex items-center gap-2.5 px-2.5 py-1.5 hover:bg-ink rounded-xl transition-colors text-left group"
                             >
-                              <div className="w-6 h-6 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg flex items-center justify-center text-xs font-bold group-hover:bg-emerald-500 group-hover:text-slate-900 transition-colors">
+                              <div className="w-6 h-6 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg flex items-center justify-center text-xs font-bold group-hover:bg-emerald-500 group-hover:text-ink-deep transition-colors">
                                 {child.name.charAt(0)}
                               </div>
-                              <span className="text-xs font-semibold text-slate-300 group-hover:text-white truncate">{child.name}</span>
+                              <span className="text-xs font-semibold text-white/80 group-hover:text-white truncate">{child.name}</span>
                             </button>
                           ))}
                         </div>
@@ -276,17 +276,17 @@ export default function Navbar() {
                       <Link 
                         to={`/dashboard/${user._id}`} 
                         onClick={() => setDropdownOpen(false)} 
-                        className="flex items-center gap-3 px-4 py-2 hover:bg-slate-800 text-xs font-medium text-slate-300 hover:text-white transition-colors"
+                        className="flex items-center gap-3 px-4 py-2 hover:bg-ink text-xs font-medium text-white/80 hover:text-white transition-colors"
                       >
-                        <HiViewGrid className="text-base text-yellow-400" /> Dashboard
+                        <HiViewGrid className="text-base text-flame" /> Dashboard
                       </Link>
 
                       <Link 
                         to={`/profile/${user._id}`} 
                         onClick={() => setDropdownOpen(false)} 
-                        className="flex items-center gap-3 px-4 py-2 hover:bg-slate-800 text-xs font-medium text-slate-300 hover:text-white transition-colors"
+                        className="flex items-center gap-3 px-4 py-2 hover:bg-ink text-xs font-medium text-white/80 hover:text-white transition-colors"
                       >
-                        <HiUser className="text-base text-yellow-400" /> My Profile
+                        <HiUser className="text-base text-flame" /> My Profile
                       </Link>
 
                       {user.admin && (
@@ -300,7 +300,7 @@ export default function Navbar() {
                       )}
                     </div>
 
-                    <div className="border-t border-slate-800 pt-1 mt-1">
+                    <div className="border-t border-white/10 pt-1 mt-1">
                       <button 
                         onClick={handleLogout}
                         className="w-full flex items-center gap-3 px-4 py-2.5 text-rose-400 hover:bg-rose-500/10 text-xs font-bold transition-colors"
@@ -314,12 +314,12 @@ export default function Navbar() {
             </div>
           ) : (
             <div className="flex items-center gap-3">
-              <NavLink to="/login" className="text-xs font-bold text-slate-300 hover:text-white px-3 py-1.5 transition-colors">
+              <NavLink to="/login" className="text-xs font-bold text-white/80 hover:text-white px-3 py-1.5 transition-colors">
                 Login
               </NavLink>
               <Link 
                 to="/login" 
-                className="bg-yellow-400 text-slate-900 hover:bg-yellow-300 px-4 py-1.5 rounded-lg text-xs font-black shadow-md transition-all duration-200"
+                className="bg-flame text-ink-deep hover:bg-[#f59a33] px-4 py-1.5 rounded-lg text-xs font-black shadow-md transition-all duration-200"
               >
                 Join Now
               </Link>
@@ -329,7 +329,7 @@ export default function Navbar() {
 
         {/* MOBILE TOGGLE BUTTON */}
         <button 
-          className="md:hidden p-2 rounded-xl text-slate-300 hover:text-white hover:bg-slate-800 focus:outline-none transition-colors" 
+          className="md:hidden p-2 rounded-xl text-white/80 hover:text-white hover:bg-ink focus:outline-none transition-colors" 
           onClick={() => setMenuOpen(!menuOpen)}
         >
           {menuOpen ? <HiX className="text-2xl" /> : <HiMenu className="text-2xl" />}
@@ -337,19 +337,19 @@ export default function Navbar() {
       </div>
 
       {/* MOBILE DRAWER */}
-      <div className={`md:hidden transition-all duration-300 ease-in-out bg-slate-900 border-b border-slate-800 overflow-hidden ${menuOpen ? "max-h-[85vh] overflow-y-auto" : "max-h-0"}`}>
+      <div className={`md:hidden transition-all duration-300 ease-in-out bg-ink-deep border-b border-white/10 overflow-hidden ${menuOpen ? "max-h-[85vh] overflow-y-auto" : "max-h-0"}`}>
         <div className="p-4 space-y-4">
           {user ? (
             <>
               {/* Mobile Profile Card */}
-              <div className="flex items-center justify-between p-3 bg-slate-800/80 rounded-xl border border-slate-700/60">
+              <div className="flex items-center justify-between p-3 bg-ink/80 rounded-xl border border-white/15">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-yellow-400 text-slate-900 rounded-full flex items-center justify-center font-black text-sm shadow-sm">
+                  <div className="w-10 h-10 bg-flame text-ink-deep rounded-full flex items-center justify-center font-black text-sm shadow-sm">
                     {user.name?.charAt(0)}
                   </div>
                   <div>
                     <p className="text-xs font-bold text-white">{user.name}</p>
-                    <p className="text-[10px] font-semibold text-yellow-400 uppercase tracking-widest">{user.role}</p>
+                    <p className="text-[10px] font-semibold text-flame uppercase tracking-widest">{user.role}</p>
                   </div>
                 </div>
               </div>
@@ -366,17 +366,17 @@ export default function Navbar() {
 
               {/* Primary Links */}
               <div className="space-y-1">
-                <NavLink to="/" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 text-slate-300 hover:text-white font-medium text-xs hover:bg-slate-800 rounded-xl transition-colors">
-                  <MdHome className="text-base text-yellow-400" /> Home
+                <NavLink to="/" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 text-white/80 hover:text-white font-medium text-xs hover:bg-ink rounded-xl transition-colors">
+                  <MdHome className="text-base text-flame" /> Home
                 </NavLink>
-                <NavLink to="/subjects" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 text-slate-300 hover:text-white font-medium text-xs hover:bg-slate-800 rounded-xl transition-colors">
-                  <MdSubject className="text-base text-yellow-400" /> Lessons
+                <NavLink to="/subjects" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 text-white/80 hover:text-white font-medium text-xs hover:bg-ink rounded-xl transition-colors">
+                  <MdSubject className="text-base text-flame" /> Lessons
                 </NavLink>
-                <Link to={`/dashboard/${user._id}`} onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 text-slate-300 hover:text-white font-medium text-xs hover:bg-slate-800 rounded-xl transition-colors">
-                  <HiViewGrid className="text-base text-yellow-400" /> Dashboard
+                <Link to={`/dashboard/${user._id}`} onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 text-white/80 hover:text-white font-medium text-xs hover:bg-ink rounded-xl transition-colors">
+                  <HiViewGrid className="text-base text-flame" /> Dashboard
                 </Link>
-                <Link to={`/profile/${user._id}`} onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 text-slate-300 hover:text-white font-medium text-xs hover:bg-slate-800 rounded-xl transition-colors">
-                  <HiUser className="text-base text-yellow-400" /> My Profile
+                <Link to={`/profile/${user._id}`} onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 text-white/80 hover:text-white font-medium text-xs hover:bg-ink rounded-xl transition-colors">
+                  <HiUser className="text-base text-flame" /> My Profile
                 </Link>
                 {user.admin && (
                   <Link to="/admindashboard" onClick={() => setMenuOpen(false)} className="flex items-center gap-3 px-3 py-2.5 text-red-400 font-bold text-xs hover:bg-red-500/10 rounded-xl transition-colors">
@@ -387,26 +387,26 @@ export default function Navbar() {
 
               {/* Mobile Quick Learner Switcher */}
               {user.role === "parent" && linkedChildren.length > 0 && (
-                <div className="pt-2 border-t border-slate-800">
-                  <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider px-2 mb-2">Switch Learner</p>
+                <div className="pt-2 border-t border-white/10">
+                  <p className="text-[10px] font-extrabold text-white/65 uppercase tracking-wider px-2 mb-2">Switch Learner</p>
                   <div className="space-y-1">
                     {linkedChildren.map((child) => (
                       <button
                         key={child._id}
                         onClick={() => handleSwitchToChild(child, false)}
-                        className="w-full flex items-center gap-3 px-3 py-2 bg-slate-800/40 hover:bg-slate-800 rounded-xl transition-colors text-left"
+                        className="w-full flex items-center gap-3 px-3 py-2 bg-ink/40 hover:bg-ink rounded-xl transition-colors text-left"
                       >
                         <div className="w-6 h-6 bg-emerald-500/20 text-emerald-400 rounded-lg flex items-center justify-center text-xs font-bold">
                           {child.name.charAt(0)}
                         </div>
-                        <span className="text-xs font-semibold text-slate-300">{child.name}</span>
+                        <span className="text-xs font-semibold text-white/80">{child.name}</span>
                       </button>
                     ))}
                   </div>
                 </div>
               )}
 
-              <div className="border-t border-slate-800 pt-2">
+              <div className="border-t border-white/10 pt-2">
                 <button 
                   onClick={handleLogout} 
                   className="w-full flex items-center gap-3 px-3 py-2.5 text-rose-400 font-bold text-xs hover:bg-rose-500/10 rounded-xl transition-colors text-left"
@@ -417,9 +417,9 @@ export default function Navbar() {
             </>
           ) : (
             <div className="flex flex-col space-y-2">
-              <NavLink to="/" onClick={() => setMenuOpen(false)} className="px-3 py-2 text-slate-300 font-medium text-xs">Home</NavLink>
-              <NavLink to="/login" onClick={() => setMenuOpen(false)} className="px-3 py-2 text-slate-300 font-medium text-xs">Login</NavLink>
-              <Link to="/login" onClick={() => setMenuOpen(false)} className="bg-yellow-400 text-slate-900 text-center py-2.5 rounded-xl font-black text-xs shadow-md">
+              <NavLink to="/" onClick={() => setMenuOpen(false)} className="px-3 py-2 text-white/80 font-medium text-xs">Home</NavLink>
+              <NavLink to="/login" onClick={() => setMenuOpen(false)} className="px-3 py-2 text-white/80 font-medium text-xs">Login</NavLink>
+              <Link to="/login" onClick={() => setMenuOpen(false)} className="bg-flame text-ink-deep text-center py-2.5 rounded-xl font-black text-xs shadow-md">
                 Register / Join
               </Link>
             </div>

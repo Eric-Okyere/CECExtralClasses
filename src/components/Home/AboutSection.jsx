@@ -1,91 +1,103 @@
-import { motion } from "framer-motion";
-import { Sparkles, Heart, CheckCircle2, Target, Eye } from "lucide-react";
+import { Link } from "react-router-dom";
+import { startPath } from "./useStartLearning";
+
+const PARENT_POINTS = [
+  {
+    title: "One account, every child",
+    body: "Add each child with their own class. Switch between them from the menu.",
+  },
+  {
+    title: "See how they are doing",
+    body: "Scores, XP and finished lessons for each child, all in one place.",
+  },
+  {
+    title: "Plan the week",
+    body: "Build a study timetable together so extra classes fit around school.",
+  },
+  {
+    title: "Tell us how your child learns",
+    body: "Record any visual, hearing or learning needs when you set up their profile.",
+  },
+];
+
+// Small illustration of the parent view. Names and numbers are examples.
+function ParentPreview() {
+  const kids = [
+    { name: "Esi", cls: "Basic 7", done: 14, of: 20, xp: 112 },
+    { name: "Kwame", cls: "Basic 9", done: 9, of: 24, xp: 64 },
+  ];
+  return (
+    <div className="rounded-2xl bg-white border border-rule p-6 sm:p-7 shadow-[0_24px_48px_-32px_rgba(22,25,87,0.5)]">
+      <p className="text-sm text-slate-ink">Example parent view</p>
+      <ul className="mt-5 space-y-6">
+        {kids.map((k) => (
+          <li key={k.name}>
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="font-display font-semibold text-xl text-ink-deep">{k.name}</span>
+              <span className="text-sm text-slate-ink">{k.cls}</span>
+            </div>
+            <div className="mt-3 h-2.5 rounded-full bg-mist overflow-hidden" aria-hidden="true">
+              <div className="h-full rounded-full bg-leaf" style={{ width: `${(k.done / k.of) * 100}%` }} />
+            </div>
+            <div className="mt-2 flex justify-between text-sm text-slate-ink">
+              <span>
+                {k.done} of {k.of} lessons finished
+              </span>
+              <span className="font-bold text-flame-deep">{k.xp} XP</span>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 export default function AboutSection() {
   return (
-    <section className="py-20 px-6 bg-white relative overflow-hidden">
-      {/* Background Subtle Blobs */}
-      <div className="absolute top-1/2 left-0 -translate-y-1/2 w-72 h-72 bg-yellow-100 rounded-full blur-3xl -z-10 opacity-60"></div>
-      <div className="absolute bottom-0 right-0 w-80 h-80 bg-blue-100 rounded-full blur-3xl -z-10 opacity-60"></div>
-
-      <div className="max-w-6xl mx-auto">
-        {/* About Content */}
-        <div className="grid md:grid-cols-2 gap-12 items-center mb-16">
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-          >
-            <span className="bg-blue-100 text-blue-700 font-black text-xs uppercase tracking-widest px-4 py-1.5 rounded-full inline-flex items-center gap-1.5 mb-3">
-              <Heart size={14} className="fill-current text-rose-500" /> About CEC Extra Classes
-            </span>
-            <h3 className="text-3xl md:text-4xl font-black text-gray-900 mb-6 leading-tight">
-              Making Quality Learning <br />
-              <span className="text-blue-600">Fun & Accessible For Every Child! 🌟</span>
-            </h3>
-            <p className="text-gray-600 leading-relaxed mb-4 font-medium">
-              CEC Extra Classes is an engaging online educational platform initiated by the Children’s Empowerment Center (CEC).
-              We supplement physical classroom learning by providing affordable, kid-friendly, and interactive study modules.
-            </p>
-            <p className="text-gray-600 leading-relaxed font-medium">
-              Whether your child is catching up or stepping ahead, we make learning an exciting adventure built directly on the official Ghanaian Curriculum.
-            </p>
-          </motion.div>
-          
-          <div className="bg-gradient-to-br from-blue-50 to-amber-50/50 p-8 rounded-[2.5rem] border-2 border-blue-100/80 shadow-sm relative">
-            <h4 className="text-xl font-black text-blue-900 mb-6 flex items-center gap-2">
-              <Sparkles className="text-yellow-500" size={20} /> What Sets Us Apart
-            </h4>
-            <ul className="space-y-4">
-              <li className="flex gap-3 items-start">
-                <CheckCircle2 className="text-emerald-500 shrink-0 mt-0.5" size={20} />
-                <p className="text-gray-700 text-sm font-semibold">Structured specifically for the Ghanaian Basic Curriculum.</p>
-              </li>
-              <li className="flex gap-3 items-start">
-                <CheckCircle2 className="text-emerald-500 shrink-0 mt-0.5" size={20} />
-                <p className="text-gray-700 text-sm font-semibold">Nurtures critical thinking through interactive challenges.</p>
-              </li>
-              <li className="flex gap-3 items-start">
-                <CheckCircle2 className="text-emerald-500 shrink-0 mt-0.5" size={20} />
-                <p className="text-gray-700 text-sm font-semibold">Fun quizzes and instant feedback to build exam confidence.</p>
-              </li>
-            </ul>
+    <>
+      <section className="bg-mist">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-20 md:py-24 grid md:grid-cols-2 gap-14 items-center">
+          <div>
+            <h2 className="font-display font-extrabold text-ink-deep text-4xl leading-tight tracking-[-0.015em] max-w-[18ch]">
+              For parents who want to keep an eye on things
+            </h2>
+            <dl className="mt-10 grid sm:grid-cols-2 gap-x-8 gap-y-7">
+              {PARENT_POINTS.map((p) => (
+                <div key={p.title}>
+                  <dt className="font-bold text-ink-deep">{p.title}</dt>
+                  <dd className="mt-1.5 text-slate-ink leading-relaxed">{p.body}</dd>
+                </div>
+              ))}
+            </dl>
           </div>
+          <ParentPreview />
         </div>
+      </section>
 
-        {/* Vision & Mission Cards */}
-        <div className="grid md:grid-cols-2 gap-8">
-          <motion.div 
-            whileHover={{ y: -5 }}
-            className="p-8 sm:p-10 bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-[2.5rem] shadow-xl relative overflow-hidden"
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="bg-white/20 p-3 rounded-2xl">
-                <Target size={24} className="text-yellow-300" />
-              </div>
-              <h3 className="text-2xl font-black uppercase tracking-wide">Our Mission</h3>
-            </div>
-            <p className="text-blue-100 leading-relaxed font-medium">
-              To transform supplementary education into an inspiring and enjoyable foundation for success, ensuring no student is left behind by providing interactive resources, mentorship, and support.
+      <section className="bg-white">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-20 md:py-24">
+          <h2 className="font-display font-extrabold text-ink-deep text-3xl sm:text-4xl leading-tight tracking-[-0.015em]">
+            About CEC Extra Classes
+          </h2>
+          <div className="mt-6 space-y-5 text-lg leading-[1.7] text-slate-ink">
+            <p>
+              CEC Extra Classes is an online learning platform from the Children’s Empowerment Center. It adds to
+              what children learn in the classroom with affordable lessons and practice they can use at home,
+              built on the official Ghanaian curriculum.
             </p>
-          </motion.div>
-
-          <motion.div 
-            whileHover={{ y: -5 }}
-            className="p-8 sm:p-10 bg-gradient-to-br from-yellow-400 to-amber-400 text-blue-950 rounded-[2.5rem] shadow-xl relative overflow-hidden"
-          >
-            <div className="flex items-center gap-3 mb-4">
-              <div className="bg-blue-950/10 p-3 rounded-2xl">
-                <Eye size={24} className="text-blue-950" />
-              </div>
-              <h3 className="text-2xl font-black uppercase tracking-wide">Our Vision</h3>
-            </div>
-            <p className="font-semibold leading-relaxed text-blue-950/90">
-              To be the leading children's learning platform across Ghana that turns supplementary study into a fun, rewarding, and lifelong key to academic excellence.
+            <p>
+              Our mission is to make extra classes something learners enjoy and to make sure no student is left
+              behind, whether they are catching up or moving ahead.
             </p>
-          </motion.div>
+          </div>
+          <Link
+            to={startPath()}
+            className="mt-8 inline-block font-bold text-ink underline decoration-flame decoration-2 underline-offset-4 hover:text-flame-deep"
+          >
+            Set up your family account
+          </Link>
         </div>
-      </div>
-    </section>
+      </section>
+    </>
   );
 }

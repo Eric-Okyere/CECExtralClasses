@@ -2,6 +2,9 @@ import "./services/http"; // must load first: adds the login token to every API 
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
+import "@fontsource-variable/lexend";
+import "@fontsource-variable/bricolage-grotesque/opsz.css";
+import "@fontsource/caveat/600.css";
 import "./index.css";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 

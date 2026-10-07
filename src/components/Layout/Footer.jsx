@@ -1,145 +1,49 @@
 import { Link } from "react-router-dom";
-import { Mail, Facebook, Twitter, Instagram } from "lucide-react";
+import Logo from "../../assets/Logo.jpeg";
+import { startPath } from "../Home/useStartLearning";
 
 export default function Footer() {
+  const learn = startPath();
   return (
-    <footer className="bg-slate-950 text-slate-300">
-      {/* TOP SECTION */}
-      <div className="max-w-7xl mx-auto px-6 py-16 grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
-
-        {/* BRAND */}
+    <footer className="bg-ink-deep text-white/75 font-body">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 py-14 grid gap-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr]">
         <div>
-          <h2 className="text-white text-2xl font-black tracking-tight mb-4 uppercase">
-            EduJHS
-          </h2>
-          <p className="text-sm text-slate-400 leading-relaxed font-medium">
-            Helping JHS students in Ghana succeed in BECE through
-            engaging lessons, quizzes, and smart learning tools.
+          <Link to="/" className="inline-flex items-center gap-3">
+            <img src={Logo} alt="" className="h-11 w-11 rounded-lg bg-white object-contain p-0.5" />
+            <span className="font-display font-extrabold text-xl text-white">CEC Extra Classes</span>
+          </Link>
+          <p className="mt-4 max-w-[36ch] leading-relaxed">
+            Video lessons and quizzes for JHS learners, following Ghana’s Common Core Programme from Basic 7 to the BECE.
           </p>
-
-          {/* SOCIALS */}
-          <div className="flex gap-4 mt-6">
-            <a 
-              href="#" 
-              aria-label="Facebook"
-              className="w-9 h-9 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white hover:border-slate-700 transition-colors"
-            >
-              <Facebook size={18} />
-            </a>
-            <a 
-              href="#" 
-              aria-label="Twitter"
-              className="w-9 h-9 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white hover:border-slate-700 transition-colors"
-            >
-              <Twitter size={18} />
-            </a>
-            <a 
-              href="#" 
-              aria-label="Instagram"
-              className="w-9 h-9 rounded-full bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 hover:text-white hover:border-slate-700 transition-colors"
-            >
-              <Instagram size={18} />
-            </a>
-          </div>
         </div>
 
-        {/* QUICK LINKS */}
-        <div>
-          <h3 className="text-white font-bold text-sm uppercase tracking-wider mb-4">
-            Quick Links
-          </h3>
-          <ul className="space-y-3 text-sm font-medium">
-            <li>
-              <Link to="/" className="hover:text-white transition-colors">
-                Home
-              </Link>
-            </li>
-            <li>
-              <Link to="/all-subjects" className="hover:text-white transition-colors">
-                Subjects
-              </Link>
-            </li>
-            <li>
-              <Link to="/dashboard" className="hover:text-white transition-colors">
-                Dashboard
-              </Link>
-            </li>
-            <li>
-              <Link to="/login" className="hover:text-white transition-colors">
-                Login
-              </Link>
-            </li>
+        <nav aria-label="Learning">
+          <h2 className="font-bold text-white">Learning</h2>
+          <ul className="mt-4 space-y-2.5">
+            <li><Link to={learn} className="hover:text-white">Subjects</Link></li>
+            <li><Link to={learn === "/login" ? "/login" : "/timetable"} className="hover:text-white">Study timetable</Link></li>
+            <li><Link to="/login" className="hover:text-white">Sign in</Link></li>
           </ul>
-        </div>
+        </nav>
 
-        {/* SUBJECTS */}
-        <div>
-          <h3 className="text-white font-bold text-sm uppercase tracking-wider mb-4">
-            Core Subjects
-          </h3>
-          <ul className="space-y-3 text-sm text-slate-400 font-medium">
-            <li>Mathematics</li>
-            <li>English Language</li>
-            <li>Integrated Science</li>
-            <li>Social Studies</li>
-            <li>ICT</li>
+        <nav aria-label="About">
+          <h2 className="font-bold text-white">About</h2>
+          <ul className="mt-4 space-y-2.5">
+            <li><Link to="/privacy-policy" className="hover:text-white">Privacy policy</Link></li>
+            <li><Link to="/terms" className="hover:text-white">Terms of service</Link></li>
           </ul>
-        </div>
-
-        {/* NEWSLETTER */}
-        <div>
-          <h3 className="text-white font-bold text-sm uppercase tracking-wider mb-4">
-            Subscribe
-          </h3>
-          <p className="text-sm text-slate-400 mb-4 font-medium">
-            Get updates, new lessons, and exam tips.
-          </p>
-
-          <form onSubmit={(e) => e.preventDefault()} className="flex items-center bg-slate-900 border border-slate-800 rounded-xl overflow-hidden focus-within:border-blue-500 transition-colors">
-            <input
-              type="email"
-              placeholder="Your email"
-              className="bg-transparent px-4 py-2.5 w-full text-sm text-white placeholder-slate-500 outline-none"
-            />
-            <button 
-              type="submit" 
-              aria-label="Submit Email"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 transition-colors flex items-center justify-center"
-            >
-              <Mail size={18} />
-            </button>
-          </form>
-        </div>
+        </nav>
       </div>
 
-      {/* DIVIDER */}
-      <div className="border-t border-slate-900"></div>
-
-      {/* BOTTOM SECTION */}
-      <div className="max-w-7xl mx-auto px-6 py-6 flex flex-col md:flex-row justify-between items-center text-xs font-medium text-slate-500 gap-4">
-        <p>
-          © {new Date().getFullYear()} EduJHS Ghana. All rights reserved.
-        </p>
-
-        <p>
-          Developed by{" "}
-          <a
-            href="https://linkpii.com"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-blue-500 hover:text-blue-400 font-bold transition-colors"
-          >
-            Linkpii
-          </a>
-        </p>
-
-        <div className="flex gap-6">
-          <a href="#" className="hover:text-slate-300 transition-colors">
-            Privacy Policy
-          </a>
-          <a href="#" className="hover:text-slate-300 transition-colors">
-            Terms of Service
-          </a>
+      <div className="border-t border-white/10">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex flex-col sm:flex-row justify-between gap-3 text-sm text-white/60">
+          <p>© {new Date().getFullYear()} Children’s Empowerment Center. All rights reserved.</p>
+          <p>
+            Developed by{" "}
+            <a href="https://linkpii.com" target="_blank" rel="noopener noreferrer" className="font-bold text-white/85 hover:text-white">
+              Linkpii
+            </a>
+          </p>
         </div>
       </div>
     </footer>

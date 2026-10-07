@@ -1,1 +1,55 @@
 @import "tailwindcss";
+
+/* CEC brand tokens — taken from the logo (indigo, orange, green, sky)
+   plus the teacher's red pen and exercise-book ruling. */
+@theme {
+  --color-ink: #23277f;
+  --color-ink-deep: #161957;
+  --color-flame: #f28c1b;
+  --color-flame-deep: #d97508;
+  --color-leaf: #2e9e48;
+  --color-sky: #0e8fc7;
+  --color-pen: #cc2a2a;
+  --color-rule: #d3e2f4;
+  --color-margin: #f1a9a9;
+  --color-mist: #f4f6fb;
+  --color-slate-ink: #4a4f6a;
+
+  --font-display: "Bricolage Grotesque Variable", "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+  --font-body: "Lexend Variable", "Lexend", ui-sans-serif, system-ui, sans-serif;
+  --font-hand: "Caveat", "Comic Sans MS", cursive;
+}
+
+/* Exercise-book page: blue ruling with a red margin line. */
+.exercise-page {
+  background-color: #fff;
+  background-image:
+    linear-gradient(to right, transparent 3.25rem, var(--color-margin) 3.25rem, var(--color-margin) calc(3.25rem + 2px), transparent calc(3.25rem + 2px)),
+    repeating-linear-gradient(to bottom, transparent 0, transparent calc(2rem - 1px), var(--color-rule) calc(2rem - 1px), var(--color-rule) 2rem);
+  background-position: 0 0, 0 1.25rem;
+}
+
+/* Red-pen marks draw themselves once when an answer is chosen. */
+.pen-stroke {
+  stroke-dasharray: 120;
+  stroke-dashoffset: 120;
+  animation: pen-draw 420ms ease-out forwards;
+}
+@keyframes pen-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pen-stroke {
+    animation: none;
+    stroke-dashoffset: 0;
+  }
+}
+
+.landing :focus-visible {
+  outline: 3px solid var(--color-sky);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
