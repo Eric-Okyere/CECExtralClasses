@@ -6,6 +6,7 @@ import SubjectsSection from "../components/Home/SubjectSection";
 import SubjectPosters from "../components/Home/SubjectPosters";
 import MainLayout from "../components/Layout/MainLayout";
 
+
 export default function Home() {
   return (
     <MainLayout>
