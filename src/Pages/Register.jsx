@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { registerUser } from "../services/api";
+import Logo from "../assets/Logo.jpeg";
 import { UserPlus, Mail, Lock, User, Loader2, ArrowRight, ShieldCheck, AlertCircle, CheckCircle2 } from "lucide-react";
 
 export default function Register() {
@@ -87,11 +88,9 @@ const handleRegister = async () => {
         
         {/* Header Section */}
         <div className="text-center mb-10">
-          <div className="bg-blue-600 w-14 h-14 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-blue-200">
-            <UserPlus className="text-white" size={28} />
-          </div>
-          <h2 className="text-3xl font-black text-gray-800 tracking-tight uppercase">Join JHS HUB</h2>
-          <p className="text-gray-400 text-sm mt-1 font-medium tracking-wide">Start your learning journey today</p>
+          <img src={Logo} alt="CEC Extra Classes logo" className="w-20 h-20 mx-auto mb-3 object-contain" />
+          <h2 className="text-2xl font-black text-gray-800 tracking-tight">Create your CEC account</h2>
+          <p className="font-hand text-green-600 text-2xl mt-1">Where Learning Knows No Limit</p>
         </div>
 
         {/* Error Messaging */}

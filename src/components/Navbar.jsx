@@ -184,12 +184,13 @@ export default function Navbar() {
         {/* LOGO */}
         <Link to="/" className="flex items-center gap-3 group" onClick={() => setMenuOpen(false)}>
           <div className="relative p-0.5 rounded-xl bg-gradient-to-tr from-flame to-flame-deep shadow-sm group-hover:scale-105 transition-transform duration-200">
-            <img src={Logo} alt="CEC Logo" className="w-9 h-9 rounded-[10px] object-cover" />
+            <img src={Logo} alt="CEC Logo" className="w-10 h-10 rounded-[10px] object-contain bg-white" />
           </div>
           <div className="leading-tight">
             <h1 className="font-extrabold text-base tracking-tight text-white flex items-center gap-1.5">
               CEC <span className="text-flame font-black">Extra Classes</span>
             </h1>
+            <p className="font-hand text-[#7fd48f] text-[1.05rem] leading-none mt-0.5">Where Learning Knows No Limit</p>
           </div>
         </Link>
 

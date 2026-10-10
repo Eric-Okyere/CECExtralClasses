@@ -23,8 +23,8 @@ const PARENT_POINTS = [
 // Small illustration of the parent view. Names and numbers are examples.
 function ParentPreview() {
   const kids = [
-    { name: "Esi", cls: "Basic 7", done: 14, of: 20, xp: 112 },
-    { name: "Kwame", cls: "Basic 9", done: 9, of: 24, xp: 64 },
+    { name: "Esi", cls: "Basic 4", done: 14, of: 20, xp: 112 },
+    { name: "Kwame", cls: "Basic 8", done: 9, of: 24, xp: 64 },
   ];
   return (
     <div className="rounded-2xl bg-white border border-rule p-6 sm:p-7 shadow-[0_24px_48px_-32px_rgba(22,25,87,0.5)]">

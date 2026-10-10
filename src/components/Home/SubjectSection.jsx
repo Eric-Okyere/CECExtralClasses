@@ -3,11 +3,20 @@ import { Link } from "react-router-dom";
 import { API_BASE_URL } from "../../services/BaseUrl";
 import { startPath } from "./useStartLearning";
 
-const CLASSES = [
-  { label: "Basic 7", level: "JHS 1" },
-  { label: "Basic 8", level: "JHS 2" },
-  { label: "Basic 9", level: "JHS 3" },
-];
+// Friendly names for levels stored in the database. Any other level is shown as it is stored.
+const LEVEL_LABELS = { "JHS 1": "Basic 7", "JHS 2": "Basic 8", "JHS 3": "Basic 9" };
+const levelLabel = (level) => LEVEL_LABELS[level] || level;
+
+// Sort levels in school order: KG, Basic/Primary 1-9 (JHS 1-3 = Basic 7-9), then SHS.
+const levelRank = (level = "") => {
+  const l = level.toUpperCase();
+  const n = parseInt(l.match(/\d+/)?.[0] || "0", 10);
+  if (l.startsWith("KG") || l.startsWith("NURSERY") || l.startsWith("CRECHE")) return n;
+  if (l.startsWith("JHS")) return 100 + 6 + n;
+  if (l.startsWith("SHS")) return 200 + n;
+  if (l.startsWith("BASIC") || l.startsWith("PRIMARY") || l.startsWith("CLASS") || l.startsWith("B")) return 100 + n;
+  return 300 + n;
+};
 
 // Shown while loading, or if the server can't be reached.
 const CCP_SUBJECTS = [
@@ -48,9 +57,15 @@ export default function SubjectsSection() {
     };
   }, []);
 
+  // Tabs come from the levels that actually have subjects in the database.
+  const classes = useMemo(() => {
+    const levels = [...new Set((subjects || []).map((s) => s.level).filter(Boolean))];
+    return levels.sort((a, b) => levelRank(a) - levelRank(b) || a.localeCompare(b)).map((level) => ({ level, label: levelLabel(level) }));
+  }, [subjects]);
+  const current = classes[Math.min(active, Math.max(classes.length - 1, 0))];
+
   const rows = useMemo(() => {
-    const level = CLASSES[active].level;
-    const live = (subjects || []).filter((s) => s.level === level);
+    const live = current ? (subjects || []).filter((s) => s.level === current.level) : [];
     if (live.length === 0) {
       return CCP_SUBJECTS.map((name) => ({ name, strands: null, lessons: null }));
     }
@@ -62,13 +77,13 @@ export default function SubjectsSection() {
         return { name: toTitle(s.name), strands, lessons };
       })
       .sort((a, b) => (b.lessons || 0) - (a.lessons || 0) || a.name.localeCompare(b.name));
-  }, [subjects, active]);
+  }, [subjects, current]);
 
   const onKeyDown = (e) => {
     const step = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
     if (!step) return;
     e.preventDefault();
-    const next = (active + step + CLASSES.length) % CLASSES.length;
+    const next = (active + step + classes.length) % classes.length;
     setActive(next);
     e.currentTarget.querySelectorAll('[role="tab"]')[next]?.focus();
   };
@@ -81,30 +96,32 @@ export default function SubjectsSection() {
             Your class, your subjects
           </h2>
           <p className="mt-4 text-lg leading-relaxed text-slate-ink max-w-[40ch]">
-            Lessons are arranged the way your textbook is: subject, then strand, then sub-strand. Pick your
-            class to see what is ready.
+            Lessons are arranged the way your textbook is: subject, then strand, then sub-strand.
+            {classes.length > 1 ? " Pick your class to see what is ready." : ""}
           </p>
 
-          <div role="tablist" aria-label="Class" className="mt-8 inline-flex rounded-xl bg-white p-1 border border-rule" onKeyDown={onKeyDown}>
-            {CLASSES.map((c, i) => (
+          {classes.length > 1 && (
+          <div role="tablist" aria-label="Class" className="mt-8 flex flex-wrap gap-1 rounded-xl bg-white p-1 border border-rule w-fit max-w-full" onKeyDown={onKeyDown}>
+            {classes.map((c, i) => (
               <button
                 key={c.label}
                 role="tab"
                 type="button"
-                aria-selected={active === i}
-                tabIndex={active === i ? 0 : -1}
+                aria-selected={current?.level === c.level}
+                tabIndex={current?.level === c.level ? 0 : -1}
                 onClick={() => setActive(i)}
                 className={`px-5 py-2.5 rounded-lg font-bold transition-colors ${
-                  active === i ? "bg-ink text-white" : "text-ink hover:bg-mist"
+                  current?.level === c.level ? "bg-ink text-white" : "text-ink hover:bg-mist"
                 }`}
               >
                 {c.label}
               </button>
             ))}
           </div>
+          )}
         </div>
 
-        <div role="tabpanel" aria-label={CLASSES[active].label}>
+        <div role={classes.length > 1 ? "tabpanel" : undefined} aria-label={current?.label || "Subjects"}>
           <ul className="divide-y divide-rule border-y border-rule">
             {rows.map((row, i) => (
               <li key={row.name}>

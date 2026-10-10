@@ -12,8 +12,9 @@ export default function Footer() {
             <img src={Logo} alt="" className="h-11 w-11 rounded-lg bg-white object-contain p-0.5" />
             <span className="font-display font-extrabold text-xl text-white">CEC Extra Classes</span>
           </Link>
-          <p className="mt-4 max-w-[36ch] leading-relaxed">
-            Video lessons and quizzes for JHS learners, following Ghana’s Common Core Programme from Basic 7 to the BECE.
+          <p className="mt-2 font-hand text-2xl text-[#7fd48f]">Where Learning Knows No Limit</p>
+          <p className="mt-3 max-w-[36ch] leading-relaxed">
+            Video lessons and quizzes for learners in Ghana, following the national curriculum.
           </p>
         </div>
 
