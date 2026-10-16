@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import ExerciseBook from "./ExerciseBook";
+import heroClassroom from "../../assets/hero-classroom.webp";
 import Logo from "../../assets/Logo.jpeg";
 import { isSignedIn, startPath } from "./useStartLearning";
 
@@ -44,7 +44,18 @@ export default function Hero() {
           )}
         </div>
 
-        <ExerciseBook />
+        <figure className="relative">
+          <div className="absolute inset-0 translate-x-3 translate-y-3 rounded-3xl bg-ink" aria-hidden="true" />
+          <img
+            src={heroClassroom}
+            alt="A teacher guides two pupils as they write in their exercise books, imagining maths, science, computing and the environment"
+            width="1200"
+            height="1097"
+            fetchPriority="high"
+            decoding="async"
+            className="relative block w-full h-auto rounded-3xl border border-rule object-cover"
+          />
+        </figure>
       </div>
     </section>
   );
