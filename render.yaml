@@ -12,7 +12,7 @@ services:
       - key: VITE_API_BASE_URL
         value: https://cecbackend.onrender.com/api/
       - key: VITE_GOOGLE_CLIENT_ID
-        value: 450195054535-tbf14l0n9dhvjon1ili187agq5bcf89k.apps.googleusercontent.com
+        value: 744447080939-74851r8ek6pjl8ogs0q35kmsrmnvs8re.apps.googleusercontent.com
     routes:
       # Single-page app: every path (e.g. /login, /dashboard/123) serves index.html
       # and React Router shows the right page. Real files like /assets/... are served first.
