@@ -2,9 +2,11 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   Video, Plus, Trash2, BookOpen, Layers, 
-  Save, X, Type, Loader2, Play 
+  Save, X, Type, Loader2, Play, Upload 
 } from "lucide-react";
 import { API_BASE_URL } from "../../services/BaseUrl";
+import QuestionImporter from "../../components/QuestionImporter";
+import { quizProblems } from "../../utils/questionImport";
 
 export default function CreateLesson() {
   const navigate = useNavigate();
@@ -18,6 +20,7 @@ export default function CreateLesson() {
   const [subStrands, setSubStrands] = useState([]);
   
   const [loading, setLoading] = useState(false);
+  const [showImport, setShowImport] = useState(false);
   const scrollContainerRef = useRef(null);
 
   const [form, setForm] = useState({
@@ -142,12 +145,18 @@ export default function CreateLesson() {
   const addQuestion = () => {
     setForm((prev) => ({
       ...prev,
-      quiz: [{ question: "", options: ["", "", "", ""], answer: "", explanation: "" }, ...prev.quiz],
+      quiz: [...prev.quiz, { question: "", options: ["", "", "", ""], answer: "", explanation: "" }],
     }));
 
-    if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
-    }
+    // New questions go at the end, so scroll down to them.
+    setTimeout(() => {
+      const el = scrollContainerRef.current;
+      if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    }, 0);
+  };
+
+  const importQuestions = (questions, mode) => {
+    setForm((prev) => ({ ...prev, quiz: mode === "replace" ? questions : [...prev.quiz, ...questions] }));
   };
 
   const updateQuestion = (index, field, value) => {
@@ -173,6 +182,8 @@ export default function CreateLesson() {
     e.preventDefault();
     if (form.videos.length === 0) return alert("Upload at least one video.");
     if (form.quiz.length === 0) return alert("Add at least one question.");
+    const problems = quizProblems(form.quiz);
+    if (problems) return alert(problems);
     
     setLoading(true);
 
@@ -365,16 +376,21 @@ export default function CreateLesson() {
                    {form.quiz.length} {form.quiz.length === 1 ? "Question" : "Questions"}
                  </span>
                </div>
+               <div className="flex flex-wrap gap-2 justify-end">
+               <button type="button" onClick={() => setShowImport(true)} className="bg-white text-blue-600 border border-blue-200 px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-blue-50 transition flex items-center gap-2">
+                 <Upload size={14}/> Import
+               </button>
                <button type="button" onClick={addQuestion} className="bg-emerald-500 text-white px-4 py-2 rounded-full text-[10px] font-black uppercase tracking-widest hover:bg-emerald-600 transition shadow-lg shadow-emerald-100 flex items-center gap-2">
                  <Plus size={14}/> Add Question
                </button>
+               </div>
              </div>
 
              <div ref={scrollContainerRef} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2 custom-scrollbar pb-10">
                 {form.quiz.map((q, index) => (
                   <div key={index} className="bg-white p-8 rounded-[2.5rem] border shadow-sm relative group hover:border-blue-200 transition-all">
                     <div className="text-[9px] font-black uppercase tracking-wider text-blue-500 mb-2">
-                      Question {form.quiz.length - index} of {form.quiz.length}
+                      Question {index + 1} of {form.quiz.length}
                     </div>
                     <button type="button" onClick={() => removeQuestion(index)} className="absolute top-6 right-6 text-slate-200 hover:text-red-500 transition">
                       <Trash2 size={20}/>
@@ -395,6 +411,12 @@ export default function CreateLesson() {
           </div>
         </form>
       </div>
+      <QuestionImporter
+        open={showImport}
+        onClose={() => setShowImport(false)}
+        onImport={importQuestions}
+        existingCount={form.quiz.length}
+      />
     </div>
   );
 }

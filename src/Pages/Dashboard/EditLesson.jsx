@@ -2,9 +2,11 @@ import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   Plus, Trash2, BookOpen, Layers, Save, 
-  ArrowLeft, Loader2, Film, Type, X, Play, Hash 
+  ArrowLeft, Loader2, Film, Type, X, Play, Hash, Upload
 } from "lucide-react";
 import { API_BASE_URL } from "../../services/BaseUrl";
+import QuestionImporter from "../../components/QuestionImporter";
+import { quizProblems } from "../../utils/questionImport";
 
 export default function EditLesson() {
   const { id } = useParams();
@@ -162,6 +164,13 @@ export default function EditLesson() {
   };
 
   // --- HANDLERS: QUIZ ---
+  const [showImport, setShowImport] = useState(false);
+  const importQuestions = (questions, mode) => {
+    const stamp = Date.now();
+    const withIds = questions.map((q, i) => ({ ...q, _id: `temp_import_${stamp}_${i}` }));
+    setForm((p) => ({ ...p, quiz: mode === "replace" ? withIds : [...p.quiz, ...withIds] }));
+  };
+
   const addQuestion = () => {
     const newQuestion = {
       _id: `temp_${Date.now()}`,
@@ -208,6 +217,8 @@ export default function EditLesson() {
   // --- SUBMIT ---
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const problems = quizProblems(form.quiz);
+    if (problems) return alert(problems);
     setUpdating(true);
     
     const formData = new FormData();
@@ -469,9 +480,14 @@ export default function EditLesson() {
                <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-3">
                  <Layers size={20} className="text-blue-600"/> Assessment ({form.quiz.length})
                </h2>
+               <div className="flex flex-wrap gap-2 justify-end">
+               <button type="button" onClick={() => setShowImport(true)} className="bg-white text-blue-600 border border-blue-200 px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-blue-50 transition">
+                 <Upload size={16}/> Import
+               </button>
                <button type="button" onClick={addQuestion} className="bg-emerald-500 text-white px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest flex items-center gap-2 hover:bg-emerald-600 transition">
                  <Plus size={16}/> New Question
                </button>
+               </div>
              </div>
 
              <div ref={scrollContainerRef} className="space-y-6 max-h-[1000px] overflow-y-auto pr-4 custom-scrollbar pb-20">
@@ -533,6 +549,12 @@ export default function EditLesson() {
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 10px; }
       `}</style>
+      <QuestionImporter
+        open={showImport}
+        onClose={() => setShowImport(false)}
+        onImport={importQuestions}
+        existingCount={form.quiz.length}
+      />
     </div>
   );
 }
